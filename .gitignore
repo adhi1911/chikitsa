@@ -1,0 +1,85 @@
+# Python-related files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.env
+.env.*
+*.python-version
+
+# Flask-specific
+instance/
+*.db
+*.sqlite3
+
+# Celery
+celerybeat-schedule
+*.pid
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# Vue.js
+node_modules/
+dist/
+*.log
+*.gz
+*.cache
+*.env.local
+*.env.*.local
+
+# Bootstrap (if using compiled assets)
+*.map
+*.css
+*.css.map
+*.scssc
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.out
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+
+# Coverage reports
+.coverage
+htmlcov/
+*.cover
+*.py,cover
+
+# Test-related
+.tox/
+.nox/
+.cache/
+pytest_cache/
+.coverage.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+*.manifest
+*.spec
+
+# Flask-Migrate
+migrations/
