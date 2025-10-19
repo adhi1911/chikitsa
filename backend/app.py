@@ -1,21 +1,40 @@
 from flask import Flask
-
+from flask_bcrypt import Bcrypt
 
 # module imports
 from core.database import db
 from core.config import Config
+from core.models import (User, 
+                         Patient,
+                         Doctor, Department, DoctorUnavailability, DoctorWorkingHours,
+                         Appointment, Notification, MedicalRecord, PrescriptionItem)
 
+
+bcrypt = Bcrypt()
 
 # functin to create root instance of the application
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    bcrypt.init_app(app)
+
 
     db.init_app(app)
 
     with app.app_context():
         db.create_all()
 
+        admin_user = User.query.filter_by(role='admin').first()
+        if not admin_user:
+            admin = User(
+                username = app.config['ADMIN_USERNAME'],
+                email = "admin.chikitsa@admin.com",
+                password_hash = bcrypt.generate_password_hash(app.config['ADMIN_PASSWORD']).decode('utf-8'),
+                role = 'admin',
+                is_active = True
+            )
+            db.session.add(admin)
+            db.session.commit()
     return app
 
 app = create_app()
@@ -24,6 +43,16 @@ app = create_app()
 def root():
     return {"status":"ok",
             "message":"still alive and running"}, 200
+
+# @app.route('/admin')
+# def admin_route():
+#     admin = User.query.filter_by(role='admin').first()
+#     if not admin:
+#         return {"status":"error",
+#                 "message":"Admin user not found"}, 404
+#     return {"status":"ok",
+#             "admin_username":admin.username,
+#             "admin_email":admin.email}, 200
 
 
 
