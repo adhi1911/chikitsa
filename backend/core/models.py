@@ -2,7 +2,7 @@ from datetime import datetime
 
 
 # module imports 
-from core.database import db
+from ..core.database import db
 
 class User(db.Model):
     __tablename__ = 'users'

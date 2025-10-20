@@ -1,25 +1,34 @@
 from flask import Flask
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, get_jwt_identity, jwt_required
 
 # module imports
-from core.database import db
-from core.config import Config
-from core.models import (User, 
+
+from backend.core.database import db
+from backend.core.config import Config
+from backend.core.models import (User, 
                          Patient,
                          Doctor, Department, DoctorUnavailability, DoctorWorkingHours,
                          Appointment, Notification, MedicalRecord, PrescriptionItem)
 
+from backend.auth.routes import auth_bp
+
 
 bcrypt = Bcrypt()
+jwt = JWTManager()
 
 # functin to create root instance of the application
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     bcrypt.init_app(app)
+    jwt.init_app(app)
 
 
     db.init_app(app)
+
+    # blueprints
+    app.register_blueprint(auth_bp)
 
     with app.app_context():
         db.create_all()
@@ -44,15 +53,15 @@ def root():
     return {"status":"ok",
             "message":"still alive and running"}, 200
 
-# @app.route('/admin')
-# def admin_route():
-#     admin = User.query.filter_by(role='admin').first()
-#     if not admin:
-#         return {"status":"error",
-#                 "message":"Admin user not found"}, 404
-#     return {"status":"ok",
-#             "admin_username":admin.username,
-#             "admin_email":admin.email}, 200
+@app.route('/admin')
+def admin_route():
+    admin = User.query.filter_by(role='admin').first()
+    if not admin:
+        return {"status":"error",
+                "message":"Admin user not found"}, 404
+    return {"status":"ok",
+            "admin_username":admin.username,
+            "admin_email":admin.email}, 200
 
 
 

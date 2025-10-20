@@ -1,5 +1,6 @@
 import os 
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
@@ -13,3 +14,8 @@ class Config:
     FLASK_ENV = os.getenv('FLASK_ENV')
     ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+
+    # JWT Configuration
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
