@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager, get_jwt_identity, jwt_required
+from flask_cors import CORS
 
 # module imports
 
@@ -23,6 +24,10 @@ def create_app():
     app.config.from_object(Config)
     bcrypt.init_app(app)
     jwt.init_app(app)
+
+    CORS(app, origins=["http://localhost:8080", "http://127.0.0.1:8080"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"])
 
 
     db.init_app(app)
