@@ -109,8 +109,13 @@ export default {
             this.$router.push({name:'login',params:{role}})
         },
         async handleLogout(){
-            await this.logout()
-            this.$router.push('/')
+            try{
+                await this.logout()
+                this.$router.push('/')
+            }catch(error){
+                console.error('Logout failed:', error)
+            }
+            
         }
     }
 }

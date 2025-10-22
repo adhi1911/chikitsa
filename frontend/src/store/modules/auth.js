@@ -12,12 +12,13 @@ const state = {
 const getters = {
     isAuthenticated: state => state.isAuthenticated,
     user: state => state.user,
-    userRole: stata => state.userRole,
+    userRole: state => state.userRole,
     token: state => state.token,
+    loading: state => state.loading,
     refreshToken: state => state.refreshToken,
     isAdmin: state => state.userRole == 'admin',
     isDoctor: state => state.userRole == 'doctor',
-    isPatient: state => state.isPatient == 'patient'
+    isPatient: state => state.userRole == 'patient'
 }
 
 const mutations = {
@@ -109,7 +110,7 @@ const actions = {
 
             const response = await fetch(`${config.apiBaseUrl}/auth/register/patient`,{
                 method: 'POST',
-                header:{
+                headers:{
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(registerData)
@@ -138,8 +139,35 @@ const actions = {
         
     },
 
-    logout({ commit }){
-        commit('LOGOUT')
+    async logout({ commit, state }){
+        try {
+            console.log('Token being sent:', state.token);
+            if (!state.token) {
+                console.log('No token found');
+                commit('LOGOUT');
+                return;
+            }
+
+            const response = await fetch(`${config.apiBaseUrl}/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${state.token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+            console.log('Logout response:', data);
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Logout failed');
+            }
+
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            commit('LOGOUT');
+        }
     },
 
     // initializing auth state from localstorage

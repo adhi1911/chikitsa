@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required 
+from flask_jwt_extended import get_jwt, jwt_required 
 from pydantic import ValidationError
 
 from ..core.auth import authenticate_user, refresh_access_token
@@ -77,3 +77,24 @@ def register():
             'message': 'Internal server error'
         }), 500
     
+
+
+@auth_bp.route('/logout', methods=['POST'])
+@jwt_required()
+def logout():
+    """Logout the current user"""
+    jwt_data = get_jwt()
+    print("JWT Data:", jwt_data)  
+    print("Authorization Header:", request.headers.get('Authorization'))
+    try:
+        jti = get_jwt()["jti"]
+        AuthService.logout(jti)
+        return jsonify({
+            'status': 'success',
+            'message': 'Successfully logged out'
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500

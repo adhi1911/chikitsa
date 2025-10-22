@@ -300,9 +300,9 @@ export default {
     },
     computed: {
         ...mapGetters('auth',['loading']),
-        loading(){
-            return this.$store.auth.loading
-        }
+        // loading(){
+        //     return this.$store.auth.loading || false 
+        // }
     },
     methods:{
         ...mapActions('auth',['register']),

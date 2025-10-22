@@ -1,10 +1,11 @@
 from datetime import datetime
 from http.client import HTTPException 
 from flask_bcrypt import Bcrypt
+from flask_jwt_extended import get_jwt
 
 
 from ..core.database import db
-from ..core.models import User, Patient
+from ..core.models import User, Patient, TokenBlacklist
 from ..core.auth import generate_tokens, update_last_login
 from .schema import LoginSchema, RegisterPatient
 
@@ -63,5 +64,19 @@ class AuthService:
         except HTTPException as he:
             db.session.rollback()
             raise he
-        
+
+
+    @staticmethod
+    def logout(jti: str):
+        """Invalidate user token when logout"""
+        try:
+            blacklisted_token = TokenBlacklist(jti = jti)
+            db.session.add(blacklisted_token)
+            db.session.commit()
+
+            return True
+
+        except Exception as e:
+            db.session.rollback()
+            raise e
 
