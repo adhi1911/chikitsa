@@ -87,7 +87,7 @@ import config from '@/config.js'
 
 export default {
 
-     name: 'LoginForm',
+    name: 'LoginForm',
     props: {
         role: {
             type: String,

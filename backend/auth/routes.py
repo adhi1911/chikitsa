@@ -49,6 +49,8 @@ def register():
         data = RegisterPatient(**request.get_json())
         tokens = AuthService.register_patient(data)
 
+        print(data.dob)
+
         return jsonify({
             'status': 'success',
             'message': 'Registration successful',
@@ -56,6 +58,7 @@ def register():
             }), 201
     
     except ValidationError as e:
+        print(e)
         return jsonify({
             'status': 'error',
             'message': 'Validation error',

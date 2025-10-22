@@ -15,7 +15,7 @@ class AuthService:
 
 
     @staticmethod
-    def login(data: RegisterPatient):
+    def register_patient(data: RegisterPatient):
         """Authenticate user and generate tokens"""
         if User.query.filter_by(username = data.username).first():
             raise ValueError("Username already exists")
