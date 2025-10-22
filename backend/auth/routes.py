@@ -26,7 +26,7 @@ def login():
         if user.role != intended_role:
             return jsonify({
                 'status': 'error',
-                'message': f'You are not authorised to login as {intended_role.uper()} '
+                'message': f'You are not authorised to login as {intended_role.upper()} '
             }), 403
 
         return jsonify({
@@ -58,7 +58,7 @@ def register():
             }), 201
     
     except ValidationError as e:
-        print(e)
+        # print(e)
         return jsonify({
             'status': 'error',
             'message': 'Validation error',

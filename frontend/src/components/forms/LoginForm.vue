@@ -61,7 +61,7 @@
             </button>
 
             <!-- error -->
-            <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
+            <div v-if="error" class="alert alert-danger d-flex align-items-center mt-3" role="alert">
                 <i class="fas fa-exclamation-circle me-2"></i>
                 {{ error }}
             </div>
@@ -83,7 +83,7 @@
 </template>
 
 <script>
-import config from '@/config.js'
+import { mapGetters, mapActions } from 'vuex';
 
 export default {
 
@@ -103,9 +103,7 @@ export default {
             },
             error: '',
             errors: {},
-            loading: false,
             showPassword: false,
-            apiUrl: config.apiBaseUrl
         }
     },
     computed: {
@@ -116,12 +114,18 @@ export default {
             patient: 'bi bi-person fs-2 text-primary'
         }
             return icons[this.role] || icons.patient
-        }
+        },
+        ...mapGetters('auth',['isAuthenticated']),
+        loading(){
+            return this.$store.state.auth.loading
+        },
     },
     methods:{
+        ...mapActions('auth',['login']),
         togglePassword(){
             this.showPassword = !this.showPassword
         },
+
         validateForm(){
             this.errors = {}
             if(!this.form.username){
@@ -132,41 +136,29 @@ export default {
             }
             return Object.keys(this.errors).length === 0
         },
+
         async handleLogin(){
-            if (!this.validateForm()) {
-                return
-            }
+            if (!this.validateForm()) {return}
 
             this.error =''
-            this.loading = true
 
             console.log(JSON.stringify(this.form))
 
-            try{
-                const response = await fetch(`${this.apiUrl}/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(this.form)
+            try {
+                const result = await this.login({
+                    username: this.form.username,
+                    password: this.form.password,
+                    role: this.role
                 })
 
-                const data = await response.json()
-
-                if(data.status === "success"){
-                    localStorage.setItem('access_token', data.access_token)
-                    localStorage.setItem('refresh_token', data.refresh_token)
-
+                if (result.success) {
                     this.$router.push(`/${this.role}/dashboard`)
-                }else{
-                    this.error = data.message || 'Login failed. Please check your credentials.'
+                } else {
+                    this.error = result.message || 'Login failed'
                 }
-
-            }catch (error) {
-                console.error('Login failed:', error)
-                this.error = error
-            } finally {
-                this.loading = false
+            } catch (error) {
+                console.error('Login error:', error)
+                this.error = 'Login failed. Please try again.'
             }
         }
     }

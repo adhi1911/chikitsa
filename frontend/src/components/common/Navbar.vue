@@ -13,6 +13,7 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <div class="navbar-nav ms-auto">
+                <template v-if="!isAuthenticated">
                 <!-- login dropdown -->
                  <div class="nav-item dropdown me-3">
                     <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" role="button" 
@@ -47,6 +48,33 @@
                     <i class="fas fa-user-plus me-1"></i>
                     Register
                 </router-link>
+                </template>
+
+                <!-- user menu -->
+                <template v-else>
+                    <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-dark fw-medium" href="#" role="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i :class="userRoleIcon"></i>
+                        {{ userDisplayName }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                        <li>
+                        <router-link :to="dashboardRoute" class="dropdown-item py-2">
+                            <i class="bi bi-speedometer2 me-2"></i>
+                            Dashboard
+                        </router-link>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                        <a @click="handleLogout" class="dropdown-item py-2 text-danger" href="#">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            Logout
+                        </a>
+                        </li>
+                    </ul>
+                    </div>
+                </template>
             </div>
         </div>
     </div>
@@ -54,11 +82,35 @@
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex';
+
 export default {
     name: 'Navbar',
+    computed:{
+        ...mapGetters('auth',['isAuthenticated','user','userRole']),
+        userDisplayName(){
+            return this.user?.username || 'User'
+        },
+        userRoleIcon(){
+            const icons = {
+                admin: 'bi bi-shield-lock fs-5 text-danger',
+                doctor: 'bi bi-person-badge fs-5 text-success',
+                patient: 'bi bi-person fs-5 text-primary'
+            }
+            return icons[this.userRole] || icons.patient
+        },
+        dashboardRoute(){
+            return `/${this.userRole}/dashboard`
+        }
+    },
     methods:{
+        ...mapActions('auth', ['logout']),
         navigateToLogin(role){
             this.$router.push({name:'login',params:{role}})
+        },
+        async handleLogout(){
+            await this.logout()
+            this.$router.push('/')
         }
     }
 }

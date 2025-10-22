@@ -271,7 +271,7 @@
 </template>
 
 <script>
-import config from '@/config.js'
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
     name: 'RegisterForm',
@@ -295,12 +295,17 @@ export default {
             bloodGroups: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
             error: '',
             errors: {},
-            loading: false,
             showPassword: false,
-            apiUrl: config.apiBaseUrl
+        }
+    },
+    computed: {
+        ...mapGetters('auth',['loading']),
+        loading(){
+            return this.$store.auth.loading
         }
     },
     methods:{
+        ...mapActions('auth',['register']),
         togglePassword(){
             this.showPassword = !this.showPassword;
         },
@@ -333,39 +338,21 @@ export default {
             if(!this.validateForm()){
                 return
             }
-
             this.error = ''
-        this.loading = true
 
             try{
-
-                // console.log('Registering with data:', this.form)
-                const response = await fetch(`${this.apiUrl}/auth/register/patient`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(this.form)
-                })
-
-                const data = await response.json()
-
-                if(data.status === 'success'){
-
-                    if(data.data?.access_token){
-                        localStorage.setItem('access_token', data.data.access_token)
-                        localStorage.setItem('refresh_token', data.data.refresh_token)
-                    }
-
-                    this.$router.push('/patient/dashboard')
-                }else   {
-                    this.error = data.message || 'Registration failed. Please try again.'
+                console.log('Registering with data:', this.form)
+                const result = await this.register(this.form)
+                if(result.success){
+                    
+                    // redirect to dashboard if registration successful
+                    this.$router.push('/login/patient')
+                }else{
+                    this.error = result.message || 'Registration failed. Please try again.'
                 }
-            }catch(error){
+            }catch (error) {
                 console.error('Registration error:', error)
                 this.error = 'Registration failed. Please try again.'
-            }finally{
-                this.loading = false
             }
         }
     }
