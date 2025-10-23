@@ -56,6 +56,7 @@ class Doctor(db.Model):
     department_id = db.Column(db.Integer, db.ForeignKey('departments.id'))
     first_name = db.Column(db.String(50), nullable=False)
     last_name = db.Column(db.String(50), nullable=False)
+    specialization = db.Column(db.String(100), nullable=False)
     qualification = db.Column(db.Text, nullable=False)
     experience_years = db.Column(db.Integer)
     phone = db.Column(db.String(15), nullable=False)
@@ -78,6 +79,7 @@ class Department(db.Model):
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     doctors = db.relationship('Doctor', backref='department')

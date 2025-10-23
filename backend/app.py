@@ -13,6 +13,7 @@ from backend.core.models import (User,
                          Appointment, Notification, MedicalRecord, PrescriptionItem, TokenBlacklist)
 
 from backend.auth.routes import auth_bp
+from backend.services.admin.routes import admin_bp
 
 
 bcrypt = Bcrypt()
@@ -35,6 +36,7 @@ def revoked_token_callback(jwt_header, jwt_payload):
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
+    print("Invalid token:", error)
     return jsonify({
         'status': 'error',
         'message': 'Invalid token'
@@ -72,6 +74,7 @@ def create_app():
 
     # blueprints
     app.register_blueprint(auth_bp)
+    app.register_blueprint(admin_bp)
 
     with app.app_context():
         db.create_all()
