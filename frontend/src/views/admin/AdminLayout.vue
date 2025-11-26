@@ -1,7 +1,9 @@
 <template>
-  <div class='admin-layout'>
+  <div class='admin-layout bg-light min-vh-100'>
     <Navbar/>
-    <router-view/>
+    <div class="container py-4">
+      <router-view/>
+    </div>
   </div>
 </template>
 

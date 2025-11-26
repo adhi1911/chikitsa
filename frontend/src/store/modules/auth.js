@@ -18,7 +18,7 @@ const getters = {
     refreshToken: state => state.refreshToken,
     isAdmin: state => state.userRole == 'admin',
     isDoctor: state => state.userRole == 'doctor',
-    isPatient: state => state.userRole == 'patient'
+    isPatient: state => state.userRole == 'patient',
 }
 
 const mutations = {
@@ -65,7 +65,8 @@ const mutations = {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user_role')
-    }
+    },
+
 }
 
 const actions = {

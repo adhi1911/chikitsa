@@ -7,6 +7,7 @@ class LoginSchema(BaseModel):
     password: str 
     role: str
 
+
 class RegisterPatient(BaseModel):
     username: str = Field(...,min_length=3, max_length=50)
     email: EmailStr
@@ -37,7 +38,6 @@ class UpdateProfileSchema(BaseModel):
     emergency_contact_phone: Optional[str] = None
     medical_history: Optional[str] = None
     specialization: Optional[str] = None
-
 
 
 class UserProfileResponse(BaseModel):

@@ -48,3 +48,10 @@ class DoctorResponse(DoctorBase):
     is_available: bool
     department_name: Optional[str] = None
 
+
+## patient schemas ##
+
+class PatientBase(BaseModel):
+    first_name: str = Field(..., min_length=1, max_length=50)
+    last_name: str = Field(..., min_length=1, max_length=50)
+    dob: Optional[date]

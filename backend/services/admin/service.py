@@ -13,6 +13,7 @@ bcrypt = Bcrypt()
 
 class AdminService:
 
+    ########### DEPARTMENTS #############
     @staticmethod 
     @admin_required
     def create_department(data: DepartmentCreate) -> Department: 
@@ -85,7 +86,7 @@ class AdminService:
         return query.all()
     
 
-    ## Doctors 
+    ########### DOCTORS #############
 
     @staticmethod
     @admin_required
@@ -226,3 +227,51 @@ class AdminService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"Failed to toggle availability for doctor id {doctor_id}: {str(e)}", exc_info=True)
+
+
+    ########### USERS #############
+    @staticmethod
+    @admin_required
+    def toggle_user_status(user_id: int) -> User:
+        """ Activate or deactivate a user account """
+        try:
+            logger.info(f"Toggling status for user id {user_id} ")
+            user = User.query.get(user_id)
+            if not user:
+                raise ValueError("User not found")
+
+            user.is_active = not user.is_active
+            user.updated_at = datetime.utcnow()
+            db.session.commit()
+            logger.info(f"User id {user_id} status updated to is_active={user.is_active}")
+            return {
+                'id': user.id,
+                'username': user.username,
+                'role': user.role,
+                'is_active': user.is_active
+            }
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Failed to toggle status for user id {user_id}: {str(e)}", exc_info=True)
+            raise e
+
+    # delete user 
+    @staticmethod
+    @admin_required
+    def delete_user(user_id: int) -> None:
+        """ Delete a user account """
+        try:
+            logger.info(f"Deleting user id {user_id} ")
+            user = User.query.get(user_id)
+            if not user:
+                raise ValueError("User not found")
+
+            db.session.delete(user)
+            db.session.commit()
+            logger.info(f"User id {user_id} deleted successfully")
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Failed to delete user id {user_id}: {str(e)}", exc_info=True)
+            raise e

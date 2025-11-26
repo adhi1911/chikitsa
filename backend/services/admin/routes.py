@@ -4,12 +4,18 @@ from pydantic import ValidationError
 
 from ...core.auth import admin_required
 from ...core.logger import logger
+
+from ...auth.schema import RegisterPatient
+
 from .service import AdminService
 from .schemas import DepartmentCreate, DepartmentUpdate, DoctorCreate, DoctorUpdate
 
+from ..patients.service import PatientService
+from ..patients.schemas import PatientUpdate
+
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
-# Department Routes
+##### DEPARTMENT ROUTES #####
 @admin_bp.route('/departments', methods=['POST'])
 @jwt_required()
 @admin_required
@@ -150,7 +156,9 @@ def get_department(dept_id):
             'message': 'Internal server error'
         }), 500
 
-# Doctor Routes
+
+
+##### DOCTOR ROUTES #####
 @admin_bp.route('/doctors', methods=['POST'])
 @jwt_required()
 @admin_required
@@ -260,6 +268,7 @@ def get_doctor(doctor_id):
                     'last_name': doctor.last_name,
                     'email': email,
                     'phone': doctor.phone,
+                    'department_id': doctor.department_id,
                     'department_name': department_name,
                     'specialization': doctor.specialization,
                     'qualification': doctor.qualification,
@@ -288,16 +297,21 @@ def get_doctors():
 
         doctors = []
         for doc, dept in docs:
-            t = {}
-            t['first_name'] = doc.first_name
-            t['last_name'] = doc.last_name
-            t['department_name'] = dept
-            t['qualification'] = doc.qualification
-            t['specialization'] = doc.specialization
-            t['is_available'] = doc.is_available
-            t['phone'] = doc.phone
+            doctor_data = {
+                'id': doc.id,
+                'first_name': doc.first_name,
+                'last_name': doc.last_name,
+                'department_id': doc.department_id,
+                'department_name': dept,
+                'qualification': doc.qualification,
+                'specialization': doc.specialization,
+                'is_available': doc.is_available,
+                'phone': doc.phone,
+                'consultation_fee': float(doc.consultation_fee),
+                'experience_years': doc.experience_years
+            }
+            doctors.append(doctor_data)
 
-            doctors.append(t)
 
 
         return jsonify({
@@ -312,3 +326,130 @@ def get_doctors():
             'status': 'error',
             'message': 'Internal server error'
         }), 500
+    
+
+##### PATIENT ROUTES #####
+
+# get all patients
+@admin_bp.route('/patients', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_patients():
+    """Get all patients"""
+    try:
+        include_inactive = request.args.get('include_inactive', '').lower() == 'true'
+        patients = PatientService.get_patients(include_inactive)
+        return jsonify({
+            'status': 'success',
+            'data': {'patients': patients}
+        })
+    except Exception as e:
+        logger.error(f"Failed to fetch patients: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+# get patient by patient_id
+@admin_bp.route('/patients/<int:patient_id>', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_patient(patient_id):
+    """Get patient by ID"""
+    try:
+        patient = PatientService.get_patient(patient_id)
+        if not patient:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+        return jsonify({
+            'status': 'success',
+            'data': {'patient': patient}
+        })
+    except Exception as e:
+        logger.error(f"Failed to fetch patient {patient_id}: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+# admin create patient
+@admin_bp.route('/patients', methods=['POST'])
+@jwt_required()
+@admin_required
+def create_patient():
+    """Create a new patient"""
+    try:
+        data = RegisterPatient(**request.get_json())
+        patient = PatientService.create_patient(data)
+        return jsonify({
+            'status': 'success',
+            'message': 'Patient created successfully',
+            'data': {'patient': patient}
+        }), 201
+    except ValidationError as e:
+        return jsonify({'status': 'error', 'message': 'Validation error', 'errors': e.errors()}), 400
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Patient creation failed: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+# admin update patient by patient_id
+@admin_bp.route('/patients/<int:patient_id>', methods=['PATCH'])
+@jwt_required()
+@admin_required
+def update_patient(patient_id):
+    """Update patient profile"""
+    try:
+        data = PatientUpdate(**request.get_json())
+        patient = PatientService.update_patient(patient_id, data.model_dump(exclude_unset=True))
+        return jsonify({
+            'status': 'success',
+            'message': 'Patient updated successfully',
+            'data': {'patient': patient}
+        })
+    except ValidationError as e:
+        return jsonify({'status': 'error', 'message': 'Validation error', 'errors': e.errors()}), 400
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Patient update failed: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+
+
+####### USER MANAGEMENT ROUTES #######
+@admin_bp.route('/users/<int:user_id>/status', methods=['PATCH'])
+@jwt_required()
+@admin_required
+def toggle_user_status(user_id):
+    """Blacklist or activate a user
+
+        blacklist: soft-delete - set is_active to False
+        activate: set is_active to True 
+    """
+    try:    
+        result = AdminService.toggle_user_status(user_id)
+        action = 'activated' if result['is_active'] else 'blacklisted'
+        return jsonify({
+            'status': 'success',
+            'message': f'User {action} successfully',
+            'data': result
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to toggle user status: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+# delete a user
+@admin_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+@admin_required
+def delete_user(user_id):
+    """Delete a user (doctor or patient)"""
+    try:
+        AdminService.delete_user(user_id)
+        return jsonify({'status': 'success', 'message': 'User deleted successfully'})
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to delete user: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
