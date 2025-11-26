@@ -30,6 +30,16 @@ const routes = [
         name: 'admin-dashboard',
         component: () => import('../views/admin/DashboardView.vue')
       },
+      {
+        path: 'departments',
+        name: 'department-list',
+        component: () => import('../views/admin/DepartmentListView.vue')
+      },
+      {
+        path: 'doctors',
+        name: 'doctor-list',
+        component: () => import('../views/admin/DoctorListView.vue')
+      }
     ]
   },
   {

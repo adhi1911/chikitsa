@@ -64,7 +64,7 @@ def create_app():
     jwt.init_app(app)
 
     CORS(app, origins=["http://localhost:8080", "http://127.0.0.1:8080"],
-        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"],
         allow_headers=["Content-Type", "Authorization"],
         expose_headers=["Authorization"],
         supports_credentials=True)

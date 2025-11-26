@@ -29,7 +29,7 @@ class DoctorBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=50)
     last_name: str = Field(..., min_length=1, max_length=50)
     department_id: Optional[int] = None
-    email: EmailStr
+    email: Optional[EmailStr]
     phone: str = Field(..., min_length=7, max_length=15)
     specialization: str = Field(..., min_length=2, max_length=100)
     qualification: str
@@ -41,7 +41,17 @@ class DoctorCreate(DoctorBase):
     password: str = Field(..., min_length=6)
 
 class DoctorUpdate(DoctorBase):
-    is_available: Optional[bool] = True
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    department_id: Optional[int] = None
+    specialization: Optional[str] = None
+    qualification: Optional[str] = None
+    experience_years: Optional[int] = None
+    consultation_fee: Optional[float] = None
+    is_available: Optional[bool] = None
+
 
 class DoctorResponse(DoctorBase):
     id: int 

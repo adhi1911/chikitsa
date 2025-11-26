@@ -76,15 +76,55 @@ class AdminService:
         return department
     
     @staticmethod
-    def get_departments(include_inactive: bool = False) -> List[Department]:
-        """Get all departments"""
+    def get_departments(include_inactive: bool = False) -> List[dict]:
+        """Get all departments with doctor count"""
         query = Department.query
         if not include_inactive:
             query = query.filter_by(is_active=True)
 
+        # Get total doctors in each department
+        doctors = db.session.query(
+            Doctor.department_id,
+            db.func.count(Doctor.id).label('total_doctors')
+        ).group_by(Doctor.department_id).all()
+        dept_doctor_count = {d.department_id: d.total_doctors for d in doctors}
+
+        # Prepare the result with doctor count
+        departments = []
+        for dept in query.all():
+            departments.append({
+                'id': dept.id,
+                'name': dept.name,
+                'description': dept.description,
+                'is_active': dept.is_active,
+                'created_at': dept.created_at,
+                'updated_at': dept.updated_at,
+                'total_doctors': dept_doctor_count.get(dept.id, 0)
+            })
+
         logger.info(f"Fetching departments, include_inactive={include_inactive}")
-        return query.all()
+        return departments
     
+
+    @staticmethod
+    @admin_required
+    def delete_department(dept_id: int) -> None:
+        """ Delete a department """
+        try:
+            logger.info(f"Deleting department id {dept_id}")
+            department = Department.query.get(dept_id)
+            if not department:
+                logger.error(f"Department deletion failed: Department with id {dept_id} not found")
+                raise ValueError("Department not found.")
+
+            db.session.delete(department)
+            db.session.commit()
+            logger.info(f"Department id {dept_id} deleted successfully")
+
+        except Exception as e:
+            logger.error(f"Department deletion failed: {str(e)}", exc_info=True)
+            db.session.rollback()
+            raise e
 
     ########### DOCTORS #############
 

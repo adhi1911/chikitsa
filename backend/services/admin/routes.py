@@ -110,12 +110,13 @@ def get_departments():
             'status': 'success',
             'data': {
                 'departments': [{
-                    'id': d.id,
-                    'name': d.name,
-                    'description': d.description,
-                    'is_active': d.is_active,
-                    'created_at': str(d.created_at),
-                    'updated_at': str(d.updated_at) if d.updated_at else None
+                    'id': d['id'],
+                    'name': d['name'],
+                    'description': d['description'],
+                    'is_active': d['is_active'],
+                    'created_at': d['created_at'],
+                    'updated_at': d['updated_at'] if d['updated_at'] else None,
+                    'total_doctors': d['total_doctors']
                 } for d in departments]
             }
         })
@@ -159,7 +160,28 @@ def get_department(dept_id):
             'message': 'Internal server error'
         }), 500
 
-
+@admin_bp.route('/departments/<int:dept_id>', methods=['DELETE'])
+@jwt_required()
+@admin_required
+def delete_department(dept_id):
+    """Delete a department"""
+    try:
+        AdminService.delete_department(dept_id)
+        return jsonify({
+            'status': 'success',
+            'message': 'Department deleted successfully'
+        })
+    except ValueError as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"Department deletion failed: {str(e)}", exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': 'Internal server error'
+        }), 500
 
 ##### DOCTOR ROUTES #####
 @admin_bp.route('/doctors', methods=['POST'])
@@ -222,7 +244,6 @@ def update_doctor(doctor_id):
                     'id': doctor.id,
                     'first_name': doctor.first_name,
                     'last_name': doctor.last_name,
-                    'email': doctor.email,
                     'department_id': doctor.department_id,
                     'is_available': doctor.is_available,
                     'updated_at': str(doctor.updated_at)
