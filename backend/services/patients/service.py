@@ -129,4 +129,4 @@ class PatientService:
             'updated_at': patient.updated_at.isoformat() if patient.updated_at else None
         }
     
-    #
+    

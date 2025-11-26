@@ -1,4 +1,4 @@
-from datetime import datetime 
+from datetime import datetime , time
 from typing import Optional, List 
 from flask_bcrypt import Bcrypt 
 from sqlalchemy.exc import IntegrityError
@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from ...core.database import db
 from ...core.logger import logger
 from ...core.auth import admin_required
-from ...core.models import User, Doctor, Department
+from ...core.models import User, Doctor, Department, DoctorUnavailability
 from .schemas import DepartmentCreate, DepartmentUpdate, DoctorCreate, DoctorUpdate
 
 bcrypt = Bcrypt()
@@ -275,3 +275,78 @@ class AdminService:
             db.session.rollback()
             logger.error(f"Failed to delete user id {user_id}: {str(e)}", exc_info=True)
             raise e
+        
+    ########### HOSPITAL HOLIDAYS #############
+    @staticmethod
+    def create_hospital_holiday(date: str, reason: str) -> dict:
+        """
+        Create hospital-wide holiday by marking all doctors unavailable.
+        """
+        # Parse date
+        holiday_date = datetime.strptime(date, '%Y-%m-%d').date()
+        
+        # Get all active doctors
+        doctors = Doctor.query.filter_by(is_available=True).all()
+        
+        if not doctors:
+            raise ValueError("No active doctors found")
+
+        logger.info(f"Creating hospital holiday on {date} for {len(doctors)} doctors")
+
+        # Start and end of the day
+        start_datetime = datetime.combine(holiday_date, time(0, 0, 0))
+        end_datetime = datetime.combine(holiday_date, time(23, 59, 59))
+
+        created_count = 0
+        for doctor in doctors:
+            # Check if unavailability already exists for this date
+            existing = DoctorUnavailability.query.filter(
+                DoctorUnavailability.doctor_id == doctor.id,
+                DoctorUnavailability.start_datetime <= end_datetime,
+                DoctorUnavailability.end_datetime >= start_datetime
+            ).first()
+
+            if not existing:
+                unavailability = DoctorUnavailability(
+                    doctor_id=doctor.id,
+                    start_datetime=start_datetime,
+                    end_datetime=end_datetime,
+                    reason=f"[Hospital Holiday] {reason}"
+                )
+                db.session.add(unavailability)
+                created_count += 1
+
+        db.session.commit()
+        
+        logger.info(f"Hospital holiday created for {created_count} doctors")
+        return {
+            'date': date,
+            'reason': reason,
+            'doctors_affected': created_count
+        }
+
+    @staticmethod
+    def delete_hospital_holiday(date: str) -> dict:
+        """
+        Remove hospital-wide holiday by deleting unavailability entries.
+        """
+        holiday_date = datetime.strptime(date, '%Y-%m-%d').date()
+        start_datetime = datetime.combine(holiday_date, time(0, 0, 0))
+        end_datetime = datetime.combine(holiday_date, time(23, 59, 59))
+
+        logger.info(f"Removing hospital holiday on {date}")
+
+        # Delete all hospital holiday entries for this date
+        deleted = DoctorUnavailability.query.filter(
+            DoctorUnavailability.start_datetime == start_datetime,
+            DoctorUnavailability.end_datetime == end_datetime,
+            DoctorUnavailability.reason.like('[Hospital Holiday]%')
+        ).delete(synchronize_session=False)
+
+        db.session.commit()
+
+        logger.info(f"Removed hospital holiday for {deleted} doctors")
+        return {
+            'date': date,
+            'doctors_affected': deleted
+        }
