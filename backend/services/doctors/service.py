@@ -1,9 +1,9 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from typing import Optional, List
 
 from ...core.database import db
 from ...core.logger import logger
-from ...core.models import Doctor, DoctorWorkingHours, DoctorUnavailability
+from ...core.models import Appointment, Doctor, DoctorWorkingHours, DoctorUnavailability
 
 DAY_NAMES = {
     0: "Monday",

@@ -16,6 +16,9 @@ from ..patients.schemas import PatientUpdate
 from ..doctors.service import DoctorService
 from ..doctors.schemas import WorkingHoursCreate, WorkingHoursDayUpdate, WorkingHoursBulkUpdate, UnavailabilityCreate, UnavailabilityUpdate
 
+from ..appointments.service import AppointmentService
+from ..appointments.schemas import AppointmentCreate, AppointmentUpdate
+
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 ##### DEPARTMENT ROUTES #####
@@ -666,4 +669,75 @@ def delete_hospital_holiday():
         return jsonify({'status': 'error', 'message': str(e)}), 400
     except Exception as e:
         logger.error(f"Failed to delete hospital holiday: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+
+######### APPPOINTMENT ROUTES #########
+
+# get all appointments 
+@admin_bp.route('/appointments', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_all_appointments():
+    """Get all appointments"""
+    try:
+        appointments = AppointmentService.get_all(
+            doctor_id=request.args.get('doctor_id', type=int),
+            patient_id=request.args.get('patient_id', type=int),
+            status=request.args.get('status'),
+            start_date=request.args.get('start_date'),
+            end_date=request.args.get('end_date')
+        )
+
+        return jsonify({
+            'status': 'success',
+            'data': {'appointments': appointments, 'total': len(appointments)}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get appointments: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+
+@admin_bp.route('/appointments/<int:appointment_id>', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_appointment(appointment_id):
+    """Get specific appointment"""
+    try:
+        appointment = AppointmentService.get_by_id(appointment_id)
+
+        if not appointment:
+            return jsonify({'status': 'error', 'message': 'Appointment not found'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'data': {'appointment': appointment}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get appointment: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+
+
+@admin_bp.route('/appointments/<int:appointment_id>/status', methods=['PATCH'])
+@jwt_required()
+@admin_required
+def update_appointment_status(appointment_id):
+    """Update appointment status"""
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+        reason = data.get('reason')
+
+        appointment = AppointmentService.update_status(appointment_id, new_status, reason)
+
+        return jsonify({
+            'status': 'success',
+            'message': f'Appointment marked as {new_status}',
+            'data': {'appointment': appointment}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to update status: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500

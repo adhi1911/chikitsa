@@ -14,6 +14,9 @@ from backend.core.models import (User,
 
 from backend.auth.routes import auth_bp
 from backend.services.admin.routes import admin_bp
+from backend.services.doctors.routes import doctor_bp
+from backend.services.patients.routes import patient_bp
+from backend.services.appointments.routes import appointment_bp
 
 
 bcrypt = Bcrypt()
@@ -75,6 +78,10 @@ def create_app():
     # blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(doctor_bp)
+    app.register_blueprint(patient_bp)
+    app.register_blueprint(appointment_bp)
+
 
     with app.app_context():
         db.create_all()
