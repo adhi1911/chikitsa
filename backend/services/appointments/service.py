@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from ...core.database import db
 from ...core.logger import logger
-from ...core.models import Doctor, DoctorWorkingHours, DoctorUnavailability, Appointment, Patient
+from ...core.models import Doctor, DoctorWorkingHours, DoctorUnavailability, Appointment, Patient, MedicalRecord
 
 class AppointmentService: 
 
@@ -287,7 +287,7 @@ class AppointmentService:
         if not appointment: 
             raise ValueError("Appointment not found")
         
-        valid_statuses = ["scheduled", "completed", "canceled", "no-show"]
+        valid_statuses = ["scheduled", "canceled", "no-show"]
         if new_status not in valid_statuses:
             raise ValueError("Invalid status value")
         
@@ -297,7 +297,9 @@ class AppointmentService:
             if appointment_datetime - datetime.utcnow() < timedelta(hours=AppointmentService.MIN_CANCEL_HOURS):
                 raise ValueError(f"Appointments can only be cancelled at least {AppointmentService.MIN_CANCEL_HOURS} hours in advance")
         
-        # check for completion
+        if new_status == 'scheduled' and appointment.status == 'completed':
+            raise ValueError("Cannot revert a completed appointment to scheduled")
+        
 
         old_status = appointment.status
         appointment.status = new_status
@@ -312,6 +314,45 @@ class AppointmentService:
         logger.info(f"Updated appointment {appointment_id} status from {old_status} to {new_status}")
         return AppointmentService._to_dict(appointment)
     
+
+    @staticmethod
+    def complete_with_record(appointment_id: int, doctor_id: int, record_data: dict) -> dict:
+        """Complete appointment by creating medical record and updating status"""
+        from ..medical_records.service import MedicalRecordService
+
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            raise ValueError("Appointment not found")
+
+        if appointment.doctor_id != doctor_id:
+            raise ValueError("Only the appointment's doctor can complete this appointment")
+
+        if appointment.status != 'scheduled':
+            raise ValueError(f"Cannot complete a {appointment.status} appointment")
+
+        try:
+            # Create medical record
+            record = MedicalRecordService.create_for_appointment(
+                appointment_id=appointment_id,
+                doctor_id=doctor_id,
+                data=record_data
+            )
+
+            # Mark appointment complete
+            appointment.status = 'completed'
+            appointment.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            logger.info(f"Appointment {appointment_id} completed with record")
+
+            return {
+                'appointment': AppointmentService._to_dict(appointment),
+                'medical_record': record
+            }
+        except Exception as e:
+            db.session.rollback()
+            raise e  
+
 ######## STATS ##########
 
 

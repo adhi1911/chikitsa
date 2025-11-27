@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
+from ...core.models import MedicalRecord
 from ...core.auth import admin_required
 from ...core.logger import logger
 
@@ -19,7 +20,59 @@ from ..doctors.schemas import WorkingHoursCreate, WorkingHoursDayUpdate, Working
 from ..appointments.service import AppointmentService
 from ..appointments.schemas import AppointmentCreate, AppointmentUpdate
 
+from ..medical_records.service import MedicalRecordService
+
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+###### DASHBOARD ROUTES ######
+
+@admin_bp.route('/dashboard/stats', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_dashboard_stats():
+    """Get admin dashboard statistics"""
+    try:
+        from ...core.models import User, Patient, Doctor, Department, Appointment
+        from datetime import date, timedelta
+        from sqlalchemy import func
+
+        today = date.today()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+
+        stats = {
+            'users': {
+                'total_patients': Patient.query.count(),
+                'total_doctors': Doctor.query.count(),
+                'active_users': User.query.filter_by(is_active=True).count()
+            },
+            'departments': {
+                'total': Department.query.count(),
+                'active': Department.query.filter_by(is_active=True).count()
+            },
+            'appointments': {
+                'total': Appointment.query.count(),
+                'today': Appointment.query.filter(Appointment.appointment_date == today).count(),
+                'this_week': Appointment.query.filter(Appointment.appointment_date >= week_ago).count(),
+                'scheduled': Appointment.query.filter_by(status='scheduled').count(),
+                'completed': Appointment.query.filter_by(status='completed').count(),
+                'cancelled': Appointment.query.filter_by(status='cancelled').count()
+            },
+            'medical_records': {
+                'total': MedicalRecord.query.count(),
+                'this_month': MedicalRecord.query.filter(MedicalRecord.created_at >= month_ago).count()
+            }
+        }
+
+        return jsonify({
+            'status': 'success',
+            'data': {'stats': stats}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get dashboard stats: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
 
 ##### DEPARTMENT ROUTES #####
 @admin_bp.route('/departments', methods=['POST'])
@@ -740,4 +793,97 @@ def update_appointment_status(appointment_id):
         return jsonify({'status': 'error', 'message': str(e)}), 400
     except Exception as e:
         logger.error(f"Failed to update status: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+########## MEDICAL RECORD ROUTES ##########
+
+@admin_bp.route('/records', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_all_records():
+    """Get all medical records with filters"""
+    try:
+        records = MedicalRecordService.get_all(
+            patient_id=request.args.get('patient_id', type=int),
+            doctor_id=request.args.get('doctor_id', type=int),
+            department_id=request.args.get('department_id', type=int),
+            start_date=request.args.get('start_date'),
+            end_date=request.args.get('end_date')
+        )
+
+        return jsonify({
+            'status': 'success',
+            'data': {'records': records, 'total': len(records)}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get records: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@admin_bp.route('/records/<int:record_id>', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_record(record_id):
+    """Get specific medical record"""
+    try:
+        record = MedicalRecordService.get_by_id(record_id, include_doctor_notes=True)
+
+        if not record:
+            return jsonify({'status': 'error', 'message': 'Medical record not found'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'data': {'record': record}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get record: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@admin_bp.route('/patients/<int:patient_id>/history', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_patient_full_history(patient_id):
+    """Get patient's complete medical history"""
+    try:
+        doctor_id = request.args.get('doctor_id', type=int)
+        department_id = request.args.get('department_id', type=int)
+
+        records = MedicalRecordService.get_patient_history(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            department_id=department_id,
+            include_doctor_notes=True
+        )
+
+        return jsonify({
+            'status': 'success',
+            'data': {'records': records, 'total': len(records)}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to get patient history: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@admin_bp.route('/departments/<int:department_id>/records', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_department_records(department_id):
+    """Get all records from a department"""
+    try:
+        records = MedicalRecordService.get_by_department(
+            department_id=department_id,
+            patient_id=request.args.get('patient_id', type=int),
+            start_date=request.args.get('start_date'),
+            end_date=request.args.get('end_date')
+        )
+
+        return jsonify({
+            'status': 'success',
+            'data': {'records': records, 'total': len(records)}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get department records: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500

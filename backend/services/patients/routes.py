@@ -7,6 +7,10 @@ from ...core.auth import patient_required
 from ...core.models import Patient
 from ..appointments.service import AppointmentService
 from ..appointments.schemas import AppointmentCreate, AppointmentUpdate
+from ..medical_records.service import MedicalRecordService
+
+from ..patients.service import PatientService
+from ..patients.schemas import PatientUpdate
 
 patient_bp = Blueprint('patients', __name__, url_prefix='/patient')
 
@@ -15,6 +19,58 @@ def get_patient_id_from_user(user_id: int) -> int:
     """Get patient ID from user ID"""
     patient = Patient.query.filter_by(user_id=user_id).first()
     return patient.id if patient else None
+
+
+########## PROFILE ROUTES ##########
+
+@patient_bp.route('/profile', methods=['GET'])
+@jwt_required()
+@patient_required
+def get_my_profile():
+    """Get current patient's profile"""
+    try:
+        user_id = get_jwt_identity()
+        patient = PatientService.get_patient_by_user_id(user_id)
+
+        if not patient:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'data': {'patient': patient}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get profile: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@patient_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+@patient_required
+def update_my_profile():
+    """Update current patient's profile"""
+    try:
+        user_id = get_jwt_identity()
+        patient_id = get_patient_id_from_user(user_id)
+
+        if not patient_id:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+
+        data = PatientUpdate(**request.get_json())
+        patient = PatientService.update_patient(patient_id, data.model_dump(exclude_unset=True))
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Profile updated successfully',
+            'data': {'patient': patient}
+        })
+    except ValidationError as e:
+        return jsonify({'status': 'error', 'message': 'Validation error', 'errors': e.errors()}), 400
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to update profile: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 
 ######### APPOINTMENT ROUTES #########
@@ -223,3 +279,95 @@ def cancel_appointment(appointment_id):
     except Exception as e:
         logger.error(f"Failed to cancel: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+
+########## MEDICAL RECORD ROUTES #########
+@patient_bp.route('/records', methods=['GET'])
+@jwt_required()
+@patient_required
+def get_my_medical_records():
+    """Get patient's own medical history"""
+    try:
+        user_id = get_jwt_identity()
+        patient_id = get_patient_id_from_user(user_id)
+
+        if not patient_id:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+
+        doctor_id = request.args.get('doctor_id', type=int)
+        department_id = request.args.get('department_id', type=int)
+
+        records = MedicalRecordService.get_patient_history(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            department_id=department_id,
+            include_doctor_notes=False  # Patients don't see doctor notes
+        )
+
+        return jsonify({
+            'status': 'success',
+            'data': {'records': records, 'total': len(records)}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get medical records: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@patient_bp.route('/records/<int:record_id>', methods=['GET'])
+@jwt_required()
+@patient_required
+def get_medical_record(record_id):
+    """Get specific medical record"""
+    try:
+        user_id = get_jwt_identity()
+        patient_id = get_patient_id_from_user(user_id)
+
+        if not patient_id:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+
+        record = MedicalRecordService.get_by_id(record_id, include_doctor_notes=False)
+
+        if not record:
+            return jsonify({'status': 'error', 'message': 'Medical record not found'}), 404
+
+        # Verify ownership
+        if record['patient_id'] != patient_id:
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+        return jsonify({
+            'status': 'success',
+            'data': {'record': record}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get medical record: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@patient_bp.route('/appointments/<int:appointment_id>/record', methods=['GET'])
+@jwt_required()
+@patient_required
+def get_appointment_record(appointment_id):
+    """Get medical record for a specific appointment"""
+    try:
+        user_id = get_jwt_identity()
+        patient_id = get_patient_id_from_user(user_id)
+
+        if not patient_id:
+            return jsonify({'status': 'error', 'message': 'Patient not found'}), 404
+
+        record = MedicalRecordService.get_by_appointment(appointment_id, include_doctor_notes=False)
+
+        if not record:
+            return jsonify({'status': 'error', 'message': 'Medical record not found'}), 404
+
+        # Verify ownership
+        if record['patient_id'] != patient_id:
+            return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+
+        return jsonify({
+            'status': 'success',
+            'data': {'record': record}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get medical record: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500  

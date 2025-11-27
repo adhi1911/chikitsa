@@ -134,6 +134,8 @@ class MedicalRecord(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), unique=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
+    doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'))
     diagnosis = db.Column(db.Text, nullable=False)
     prescription = db.Column(db.Text)
     treatment_notes = db.Column(db.Text)
