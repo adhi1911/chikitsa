@@ -103,6 +103,26 @@ const routes = [
         name: 'patient-dashboard',
         component: () => import('../views/patient/DashboardView.vue')
       },
+      {
+        path: 'doctors',
+        name: 'patient-doctors',
+        component: () => import('../views/patient/DoctorsView.vue')
+      },
+      {
+        path: 'appointments',
+        name: 'patient-appointments',
+        component: () => import('../views/patient/AppointmentsView.vue')
+      },
+      {
+        path: 'records',
+        name: 'patient-records',
+        component: () => import('../views/patient/MedicalRecordsView.vue')
+      },
+      {
+        path: 'profile',
+        name: 'patient-profile',
+        component: () => import('../views/patient/ProfileView.vue')
+      }
     ]
   }
 ]

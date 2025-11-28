@@ -24,11 +24,11 @@
           <div class="row align-items-center">
             <div class="col-auto">
               <div class="avatar-lg bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center">
-                <span class="text-primary fw-bold fs-3">{{ getInitials(patient.name) }}</span>
+                <span class="text-primary fw-bold fs-3">{{ getInitials(patient.full_name) }}</span>
               </div>
             </div>
             <div class="col">
-              <h5 class="mb-1 fw-semibold">{{ patient.name }}</h5>
+              <h5 class="mb-1 fw-semibold">{{ patient.full_name }}</h5>
               <div class="text-muted small">
                 <span v-if="patient.age" class="me-3">
                   <i class="bi bi-calendar me-1"></i>{{ patient.age }} years
@@ -392,7 +392,7 @@ export default {
       const printContent = `
         <h2>Medical Record</h2>
         <p><strong>Date:</strong> ${this.formatDate(record.created_at)}</p>
-        <p><strong>Patient:</strong> ${this.patient.name}</p>
+        <p><strong>Patient:</strong> ${this.patient.full_name}</p>
         <p><strong>Doctor:</strong> ${record.doctor_name}</p>
         <hr>
         <p><strong>Diagnosis:</strong> ${record.diagnosis}</p>

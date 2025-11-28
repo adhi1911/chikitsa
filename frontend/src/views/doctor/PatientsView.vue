@@ -146,10 +146,10 @@
               <div class="col-md-8">
                 <div class="d-flex align-items-center">
                   <div class="avatar-lg bg-primary-subtle rounded-circle me-3">
-                    <span class="text-primary fw-bold fs-4">{{ getInitials(selectedPatient.name) }}</span>
+                    <span class="text-primary fw-bold fs-4">{{ getInitials(selectedPatient.full_name) }}</span>
                   </div>
                   <div>
-                    <h4 class="mb-1">{{ selectedPatient.name }}</h4>
+                    <h4 class="mb-1">{{ selectedPatient.full_name }}</h4>
                     <p class="text-muted mb-0">
                       <i class="bi bi-envelope me-2"></i>{{ selectedPatient.email || 'N/A' }}
                       <span class="mx-2">|</span>

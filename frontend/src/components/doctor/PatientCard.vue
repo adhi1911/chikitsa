@@ -4,10 +4,10 @@
       <!-- Header -->
       <div class="d-flex align-items-center mb-3">
         <div class="avatar bg-primary-subtle rounded-circle me-3">
-          <span class="text-primary fw-bold">{{ getInitials(patient.name) }}</span>
+          <span class="text-primary fw-bold">{{ getInitials(patient.full_name) }}</span>
         </div>
         <div class="flex-grow-1 overflow-hidden">
-          <h6 class="mb-0 fw-semibold text-truncate">{{ patient.name }}</h6>
+          <h6 class="mb-0 fw-semibold text-truncate">{{ patient.full_name }}</h6>
           <small class="text-muted">{{ patient.email || 'No email' }}</small>
         </div>
       </div>

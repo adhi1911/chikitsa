@@ -355,7 +355,7 @@ export default {
         name: this.profile.name || '',
         email: this.profile.email || '',
         phone: this.profile.phone || '',
-        date_of_birth: this.profile.date_of_birth || '',
+        date_of_birth: this.profile.dob || '',
         gender: this.profile.gender || '',
         address: this.profile.address || '',
         specialization: this.profile.specialization || '',

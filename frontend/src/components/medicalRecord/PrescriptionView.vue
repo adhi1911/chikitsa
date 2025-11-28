@@ -1,6 +1,6 @@
 <template>
   <div class="prescription-view">
-    <div v-if="!prescription || prescription.medicines?.length === 0" class="text-center py-4">
+    <div v-if="!prescription || prescription.length === 0" class="text-center py-4">
       <i class="bi bi-capsule text-muted fs-1"></i>
       <p class="text-muted mt-2">No prescription</p>
     </div>
@@ -22,7 +22,7 @@
           <tbody>
             <tr v-for="(med, index) in prescription" :key="index">
               <td>{{ index + 1 }}</td>
-              <td class="fw-medium">{{ med.name }}</td>
+              <td class="fw-medium">{{ med.medicine_name || med.name }}</td>
               <td>{{ med.dosage }}</td>
               <td>
                 <span class="badge bg-light text-dark">
@@ -36,12 +36,6 @@
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <!-- Notes -->
-      <div v-if="prescription.notes" class="mt-3 p-3 bg-light rounded">
-        <small class="fw-medium text-muted">Notes:</small>
-        <p class="mb-0 small">{{ prescription.notes }}</p>
       </div>
 
       <!-- Print Button -->
@@ -58,24 +52,28 @@
 export default {
   name: 'PrescriptionView',
   props: {
-    prescription: { type: Object, default: null },
+    prescription: { type: Array, default: () => [] },
     showInstructions: { type: Boolean, default: true },
     showPrint: { type: Boolean, default: false }
   },
   methods: {
     formatFrequency(frequency) {
       const map = {
-        once_daily: 'Once Daily',
-        twice_daily: 'Twice Daily',
-        thrice_daily: 'Thrice Daily',
-        four_times_daily: '4x Daily',
-        every_4_hours: 'Every 4 Hrs',
-        every_6_hours: 'Every 6 Hrs',
-        every_8_hours: 'Every 8 Hrs',
-        as_needed: 'As Needed',
-        before_meals: 'Before Meals',
-        after_meals: 'After Meals',
-        at_bedtime: 'At Bedtime'
+        'Once daily': 'Once Daily',
+        'Twice daily': 'Twice Daily',
+        'Thrice daily': 'Thrice Daily',
+        'once_daily': 'Once Daily',
+        'twice_daily': 'Twice Daily',
+        'thrice_daily': 'Thrice Daily',
+        'four_times_daily': '4x Daily',
+        'every_4_hours': 'Every 4 Hrs',
+        'every_6_hours': 'Every 6 Hrs',
+        'every_8_hours': 'Every 8 Hrs',
+        'as_needed': 'As Needed',
+        'As needed': 'As Needed',
+        'before_meals': 'Before Meals',
+        'after_meals': 'After Meals',
+        'at_bedtime': 'At Bedtime'
       };
       return map[frequency] || frequency;
     },

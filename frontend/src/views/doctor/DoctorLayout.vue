@@ -172,3 +172,35 @@ export default {
 };
 </script>
 
+
+<style scoped>
+.sidebar {
+  width: 220px;
+  min-height: calc(100vh - 56px);
+  transition: width 0.3s;
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-collapsed {
+  width: 70px;
+}
+.sidebar-nav .nav-link {
+  color: #495057;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+}
+.sidebar-nav .nav-link:hover {
+  background: #e3f2fd;
+  color: #0d6efd;
+}
+.sidebar-nav .nav-link.active {
+  background: #0d6efd;
+  color: white;
+}
+.main-content {
+  min-height: calc(100vh - 56px);
+  overflow-y: auto;
+}
+</style>
+

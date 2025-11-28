@@ -300,7 +300,6 @@ def get_my_medical_records():
         records = MedicalRecordService.get_patient_history(
             patient_id=patient_id,
             doctor_id=doctor_id,
-            department_id=department_id,
             include_doctor_notes=False  # Patients don't see doctor notes
         )
 
