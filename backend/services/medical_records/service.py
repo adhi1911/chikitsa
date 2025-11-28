@@ -28,6 +28,10 @@ class MedicalRecordService:
             raise ValueError("Medical record already exists for this appointment")
 
         # Create record
+        followup_date = data.get('followup_date')
+        if followup_date and isinstance(followup_date, str):
+            followup_date = datetime.strptime(followup_date, '%Y-%m-%d').date()
+
         record = MedicalRecord(
             appointment_id=appointment_id,
             patient_id=appointment.patient_id,
@@ -36,7 +40,7 @@ class MedicalRecordService:
             symptoms=data.get('symptoms'),
             treatment_notes=data.get('treatment_notes'),
             doctor_notes=data.get('doctor_notes'),
-            followup_date=data.get('followup_date'),
+            followup_date=followup_date,
             created_at=datetime.utcnow()
         )
         db.session.add(record)

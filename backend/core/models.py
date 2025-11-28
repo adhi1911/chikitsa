@@ -71,6 +71,7 @@ class Doctor(db.Model):
     appointments = db.relationship('Appointment', backref='doctor')
 
 
+
 class Department(db.Model):
     __tablename__ = 'departments'
     
@@ -136,6 +137,7 @@ class MedicalRecord(db.Model):
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.id'), unique=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patients.id'))
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctors.id'))
+    symptoms = db.Column(db.Text, nullable=False)
     diagnosis = db.Column(db.Text, nullable=False)
     prescription = db.Column(db.Text)
     treatment_notes = db.Column(db.Text)
@@ -146,6 +148,8 @@ class MedicalRecord(db.Model):
 
     # Relationships
     prescription_items = db.relationship('PrescriptionItem', backref='medical_record')
+    patient = db.relationship('Patient', backref='medical_records')
+    doctor = db.relationship('Doctor', backref='medical_records')
 
 
 class PrescriptionItem(db.Model):

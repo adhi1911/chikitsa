@@ -287,7 +287,7 @@ class AppointmentService:
         if not appointment: 
             raise ValueError("Appointment not found")
         
-        valid_statuses = ["scheduled", "canceled", "no-show"]
+        valid_statuses = ["scheduled", "canceled", "no_show"]
         if new_status not in valid_statuses:
             raise ValueError("Invalid status value")
         
