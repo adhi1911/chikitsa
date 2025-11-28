@@ -24,6 +24,197 @@ def get_doctor_id_from_user(user_id: int) -> int:
         return None
     return doctor.id
 
+
+########### PROFILE ROUTES ###########
+@doctor_bp.route('/profile', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_my_profile():
+    """Get doctor's own profile"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        print("Doctor id : ",doctor_id)
+
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        profile = DoctorService.get_doctor_profile(doctor_id)
+        return jsonify({
+            'status': 'success',
+            'data': {'doctor': profile}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get profile: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+    
+
+@doctor_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+@doctor_required
+def update_my_profile():
+    """Update doctor's own profile"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        data = request.get_json()
+        profile = DoctorService.update_doctor_profile(doctor_id, data)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Profile updated successfully',
+            'data': {'doctor': profile}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Failed to update profile: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@doctor_bp.route('/dashboard/stats', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_dashboard_stats():
+    """Get doctor dashboard statistics"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        stats = DoctorService.get_doctor_stats(doctor_id)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {'stats': stats}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Failed to get dashboard stats: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+########### PATIENTS ROUTES ###########
+
+@doctor_bp.route('/patients', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_my_patients():
+    """Get patients that this doctor has consulted"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        search = request.args.get('search')
+        sort_by = request.args.get('sort_by', 'recent')
+        filter_type = request.args.get('filter', 'all')
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 12, type=int)
+        
+        patients, total = DoctorService.get_my_patients(
+            doctor_id=doctor_id,
+            search=search,
+            sort_by=sort_by,
+            filter_type=filter_type,
+            page=page,
+            per_page=per_page
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'data': {
+                'patients': patients,
+                'total': total,
+                'page': page,
+                'per_page': per_page
+            }
+        })
+    except Exception as e:
+        logger.error(f"Failed to get patients: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@doctor_bp.route('/patients/stats', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_patients_stats():
+    """Get statistics about doctor's patients"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        stats = DoctorService.get_patients_stats(doctor_id)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {'stats': stats}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get patient stats: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@doctor_bp.route('/patients/<int:patient_id>/stats', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_patient_individual_stats(patient_id):
+    """Get statistics for a specific patient"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        stats = DoctorService.get_patient_stats(doctor_id, patient_id)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {'stats': stats}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Failed to get patient stats: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
+
+@doctor_bp.route('/patients/<int:patient_id>/records', methods=['GET'])
+@jwt_required()
+@doctor_required
+def get_patient_records(patient_id):
+    """Get medical records for a specific patient"""
+    try:
+        user_id = get_jwt_identity()
+        doctor_id = get_doctor_id_from_user(user_id)
+        
+        if not doctor_id:
+            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
+        
+        records = DoctorService.get_patient_records(doctor_id, patient_id)
+        
+        return jsonify({
+            'status': 'success',
+            'data': {'records': records}
+        })
+    except ValueError as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 404
+    except Exception as e:
+        logger.error(f"Failed to get patient records: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
+
 ########### WORKING HOUR ROUTES ###########
 
 @doctor_bp.route('/working-hours', methods=['GET'])
@@ -49,64 +240,6 @@ def get_my_working_hours():
         logger.error(f"Error fetching working hours: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Failed to fetch working hours'}), 500
     
-
-########### DASHBOARD STATS ###########
-
-@doctor_bp.route('/dashboard/stats', methods=['GET'])
-@jwt_required()
-@doctor_required
-def get_dashboard_stats():
-    """Get doctor's dashboard statistics"""
-    try:
-        user_id = get_jwt_identity()
-        doctor_id = get_doctor_id_from_user(user_id)
-
-        if not doctor_id:
-            return jsonify({'status': 'error', 'message': 'Doctor not found'}), 404
-
-        from ...core.models import Appointment, MedicalRecord
-        from datetime import date, timedelta
-
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-
-        # Appointments
-        today_appointments = Appointment.query.filter(
-            Appointment.doctor_id == doctor_id,
-            Appointment.appointment_date == today
-        ).all()
-
-        stats = {
-            'today': {
-                'total': len(today_appointments),
-                'completed': len([a for a in today_appointments if a.status == 'completed']),
-                'pending': len([a for a in today_appointments if a.status == 'scheduled']),
-                'cancelled': len([a for a in today_appointments if a.status == 'cancelled'])
-            },
-            'this_week': {
-                'total': Appointment.query.filter(
-                    Appointment.doctor_id == doctor_id,
-                    Appointment.appointment_date >= week_start
-                ).count()
-            },
-            'upcoming': Appointment.query.filter(
-                Appointment.doctor_id == doctor_id,
-                Appointment.appointment_date >= today,
-                Appointment.status == 'scheduled'
-            ).count(),
-            'total_patients': db.session.query(Appointment.patient_id).filter(
-                Appointment.doctor_id == doctor_id
-            ).distinct().count(),
-            'total_records': MedicalRecord.query.filter_by(doctor_id=doctor_id).count()
-        }
-
-        return jsonify({
-            'status': 'success',
-            'data': {'stats': stats}
-        })
-    except Exception as e:
-        logger.error(f"Failed to get dashboard stats: {str(e)}", exc_info=True)
-        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 ########### UNAVAILABILITY ROUTES ###########
 
@@ -627,7 +760,6 @@ def get_patient_history(patient_id):
         records = MedicalRecordService.get_patient_history(
             patient_id=patient_id,
             doctor_id=filter_doctor_id,
-            department_id=department_id,
             include_doctor_notes=True
         )
 

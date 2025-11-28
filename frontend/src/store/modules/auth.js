@@ -40,6 +40,7 @@ const mutations = {
         localStorage.setItem('access_token',token)
         localStorage.setItem('refresh_token',refreshToken)
         localStorage.setItem('user_role',role)
+        localStorage.setItem('user', JSON.stringify(user))
     },
     
     // else any error
@@ -176,10 +177,11 @@ const actions = {
         const token = localStorage.getItem('access_token')
         const refreshToken = localStorage.getItem('refresh_token')
         const userRole = localStorage.getItem('user_role')
+        // const userData = localStorage.getItem('user')
         
         if (token && userRole) {
         commit('SET_AUTH_SUCCESS', {
-            user: userData ? JSON.parse(userData) : null,
+            // user: userData ? JSON.parse(userData) : null,
             token,
             refreshToken,
             role: userRole

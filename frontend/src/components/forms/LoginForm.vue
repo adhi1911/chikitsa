@@ -142,7 +142,7 @@ export default {
 
             this.error =''
 
-            console.log(JSON.stringify(this.form))
+            // console.log(JSON.stringify(this.form))
 
             try {
                 const result = await this.login({

@@ -10,6 +10,6 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 
 // initialize auth state
-store.dispatch('auth/initialzeAuth')
+store.dispatch('auth/initializeAuth')
 
 createApp(App).use(store).use(router).mount('#app')

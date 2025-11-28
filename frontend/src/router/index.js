@@ -63,6 +63,33 @@ const routes = [
         name: 'doctor-dashboard',
         component: () => import('../views/doctor/DashboardView.vue')
       },
+      {
+        path: 'appointments',
+        name: 'doctor-appointments',
+        component: () => import('../views/doctor/AppointmentsView.vue')
+      },
+      {
+        path: 'patients',
+        name: 'doctor-patients',
+        component: () => import('../views/doctor/PatientsView.vue')
+      },
+      {
+        path: 'patients/:id',
+        name: 'doctor-patient-details',
+        component: () => import('../views/doctor/PatientDetailView.vue'),
+        props: true
+      },
+      {
+        path:'schedule',
+        name: 'doctor-schedule',
+        component: () => import('../views/doctor/ScheduleView.vue')
+      },
+      {
+        path: 'profile',
+        name: 'doctor-profile',
+        component: () => import('../views/doctor/ProfileView.vue')
+      }
+
     ]
   },
   {

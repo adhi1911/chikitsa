@@ -1,9 +1,11 @@
 from datetime import datetime, time, timedelta, date
-from typing import Optional, List
+from typing import Optional, List, Tuple
+
+from sqlalchemy import func
 
 from ...core.database import db
 from ...core.logger import logger
-from ...core.models import Appointment, Doctor, DoctorWorkingHours, DoctorUnavailability
+from ...core.models import Appointment, Doctor, DoctorWorkingHours, DoctorUnavailability, User, Department
 
 DAY_NAMES = {
     0: "Monday",
@@ -29,6 +31,397 @@ class DoctorService:
         if t is None:
             return None
         return t.strftime('%H:%M')
+
+    @staticmethod 
+    def get_doctor_profile(doctor_id: int) -> dict:
+        """ Get doctor profile with all details"""
+
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            raise ValueError("Doctor not Found")
+
+        user = User.query.get(doctor.user_id)
+        department = Department.query.get(doctor.department_id) if doctor.department_id else None
+
+        return {
+            'id': doctor.id,
+            'user_id': doctor.user_id,
+            'name': f"{doctor.first_name} {doctor.last_name}",
+            'first_name': doctor.first_name,
+            'last_name': doctor.last_name,
+            'email': user.email if user else None,
+            'phone': doctor.phone,
+            'specialization': doctor.specialization,
+            'qualification': doctor.qualification,
+            'experience_years': doctor.experience_years,
+            'consultation_fee': float(doctor.consultation_fee) if doctor.consultation_fee else None,
+            'license_number': doctor.license_number if hasattr(doctor, 'license_number') else None,
+            'bio': doctor.bio if hasattr(doctor, 'bio') else None,
+            'date_of_birth': doctor.date_of_birth.isoformat() if hasattr(doctor, 'date_of_birth') and doctor.date_of_birth else None,
+            'gender': doctor.gender if hasattr(doctor, 'gender') else None,
+            'address': doctor.address if hasattr(doctor, 'address') else None,
+            'department_id': doctor.department_id,
+            'department_name': department.name if department else None,
+            'is_available': doctor.is_available,
+            'created_at': doctor.created_at.isoformat() if doctor.created_at else None
+        }
+    
+    @staticmethod
+    def update_doctor_profile(doctor_id: int, data: dict) -> dict:
+        """Update doctor's own profile"""
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            raise ValueError("Doctor not found")
+        
+        # Updatable fields
+        updatable_fields = [
+            'first_name', 'last_name', 'phone', 'specialization', 
+            'qualification', 'experience_years', 'consultation_fee',
+            'license_number', 'bio', 'date_of_birth', 'gender', 'address'
+        ]
+        
+        for field in updatable_fields:
+            if field in data and data[field] is not None:
+                if hasattr(doctor, field):
+                    setattr(doctor, field, data[field])
+        
+        # Handle name field (split into first_name and last_name)
+        if 'name' in data and data['name']:
+            name_parts = data['name'].strip().split(' ', 1)
+            doctor.first_name = name_parts[0]
+            doctor.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        
+        doctor.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        return DoctorService.get_doctor_profile(doctor_id)
+
+    
+    @staticmethod 
+    def get_doctor_stats(doctor_id: int) -> dict:
+        """Get comprehensive dashboard statistics for a doctor"""
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            raise ValueError("Doctor not found")
+        
+        today = date.today()
+        first_day_of_week = today - timedelta(days=today.weekday())
+        last_day_of_week = first_day_of_week + timedelta(days=6)
+        first_day_of_month = today.replace(day=1)
+        
+        # Today's stats
+        today_total = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == today
+        ).count()
+        
+        today_completed = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == today,
+            Appointment.status == 'completed'
+        ).count()
+        
+        today_pending = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == today,
+            Appointment.status == 'scheduled'
+        ).count()
+        
+        today_cancelled = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date == today,
+            Appointment.status.in_(['cancelled', 'no_show'])
+        ).count()
+        
+        # This week's stats
+        week_total = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_week,
+            Appointment.appointment_date <= last_day_of_week
+        ).count()
+        
+        week_completed = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_week,
+            Appointment.appointment_date <= last_day_of_week,
+            Appointment.status == 'completed'
+        ).count()
+        
+        # This month's stats
+        month_total = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_month
+        ).count()
+        
+        month_completed = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_month,
+            Appointment.status == 'completed'
+        ).count()
+        
+        # Upcoming appointments (future scheduled)
+        upcoming = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date > today,
+            Appointment.status == 'scheduled'
+        ).count()
+        
+        # Total unique patients
+        total_patients = db.session.query(
+            func.count(func.distinct(Appointment.patient_id))
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status.in_(['completed', 'scheduled'])
+        ).scalar() or 0
+        
+        # New patients this month (first appointment with this doctor)
+        new_patients_this_month = db.session.query(
+            func.count(func.distinct(Appointment.patient_id))
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_month,
+            Appointment.status == 'completed'
+        ).filter(
+            ~Appointment.patient_id.in_(
+                db.session.query(Appointment.patient_id).filter(
+                    Appointment.doctor_id == doctor_id,
+                    Appointment.appointment_date < first_day_of_month,
+                    Appointment.status == 'completed'
+                )
+            )
+        ).scalar() or 0
+        
+        # Total appointments (all time)
+        total_appointments = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id
+        ).count()
+        
+        total_completed = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status == 'completed'
+        ).count()
+        
+        # Calculate completion rate
+        completion_rate = round((total_completed / total_appointments * 100), 1) if total_appointments > 0 else 0
+        
+        # Revenue this month (if consultation fee exists)
+        month_revenue = 0
+        if doctor.consultation_fee:
+            month_revenue = float(doctor.consultation_fee) * month_completed
+        
+        return {
+            'today': {
+                'total': today_total,
+                'completed': today_completed,
+                'pending': today_pending,
+                'cancelled': today_cancelled
+            },
+            'this_week': {
+                'total': week_total,
+                'completed': week_completed
+            },
+            'this_month': {
+                'total': month_total,
+                'completed': month_completed,
+                'new_patients': new_patients_this_month,
+                'revenue': month_revenue
+            },
+            'upcoming': upcoming,
+            'total_patients': total_patients,
+            'total_appointments': total_appointments,
+            'total_completed': total_completed,
+            'completion_rate': completion_rate
+        }
+
+
+    @staticmethod
+    def get_my_patients(
+        doctor_id: int,
+        search: Optional[str] = None,
+        sort_by: str = 'recent',
+        filter_type: str = 'all',
+        page: int = 1,
+        per_page: int = 12
+    ) -> Tuple[List[dict], int]:
+        """Get patients that this doctor has consulted"""
+        from ...core.models import Appointment, Patient, User
+        
+        # Get unique patient IDs from appointments
+        patient_subquery = db.session.query(
+            Appointment.patient_id,
+            func.max(Appointment.appointment_date).label('last_visit'),
+            func.count(Appointment.id).label('total_visits')
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status.in_(['completed', 'scheduled'])
+        ).group_by(Appointment.patient_id).subquery()
+        
+        # Build query
+        query = db.session.query(
+            Patient,
+            User,
+            patient_subquery.c.last_visit,
+            patient_subquery.c.total_visits
+        ).join(
+            User, Patient.user_id == User.id
+        ).join(
+            patient_subquery, Patient.id == patient_subquery.c.patient_id
+        )
+        
+        # Search filter
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Patient.first_name.ilike(search_term),
+                    Patient.last_name.ilike(search_term),
+                    User.email.ilike(search_term),
+                    Patient.phone.ilike(search_term)
+                )
+            )
+        
+        # Date filter
+        if filter_type == 'recent':
+            thirty_days_ago = date.today() - timedelta(days=30)
+            query = query.filter(patient_subquery.c.last_visit >= thirty_days_ago)
+        elif filter_type == 'followup':
+            # Patients with scheduled appointments
+            query = query.filter(
+                Patient.id.in_(
+                    db.session.query(Appointment.patient_id).filter(
+                        Appointment.doctor_id == doctor_id,
+                        Appointment.status == 'scheduled',
+                        Appointment.appointment_date >= date.today()
+                    )
+                )
+            )
+        
+        # Sorting
+        if sort_by == 'name':
+            query = query.order_by(Patient.first_name, Patient.last_name)
+        elif sort_by == 'visits':
+            query = query.order_by(patient_subquery.c.total_visits.desc())
+        else:  # recent
+            query = query.order_by(patient_subquery.c.last_visit.desc())
+        
+        # Get total count before pagination
+        total = query.count()
+        
+        # Pagination
+        offset = (page - 1) * per_page
+        results = query.offset(offset).limit(per_page).all()
+        
+        patients = []
+        for patient, user, last_visit, total_visits in results:
+            patients.append({
+                'id': patient.id,
+                'name': f"{patient.first_name} {patient.last_name}",
+                'first_name': patient.first_name,
+                'last_name': patient.last_name,
+                'email': user.email,
+                'phone': patient.phone,
+                'gender': patient.gender,
+                'blood_group': patient.blood_group,
+                'last_visit': last_visit.isoformat() if last_visit else None,
+                'total_visits': total_visits or 0
+            })
+        
+        return patients, total
+
+    @staticmethod
+    def get_patients_stats(doctor_id: int) -> dict:
+        """Get statistics about doctor's patients"""
+        from ...core.models import Appointment
+        
+        # Total unique patients
+        total_patients = db.session.query(
+            func.count(func.distinct(Appointment.patient_id))
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.status.in_(['completed', 'scheduled'])
+        ).scalar() or 0
+        
+        # This month
+        first_day_of_month = date.today().replace(day=1)
+        this_month = db.session.query(
+            func.count(func.distinct(Appointment.patient_id))
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= first_day_of_month,
+            Appointment.status == 'completed'
+        ).scalar() or 0
+        
+        # Pending follow-ups (upcoming scheduled appointments)
+        followups_pending = db.session.query(
+            func.count(func.distinct(Appointment.patient_id))
+        ).filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= date.today(),
+            Appointment.status == 'scheduled'
+        ).scalar() or 0
+        
+        return {
+            'total_patients': total_patients,
+            'this_month': this_month,
+            'followups_pending': followups_pending
+        }
+
+    @staticmethod
+    def get_patient_stats(doctor_id: int, patient_id: int) -> dict:
+        """Get statistics for a specific patient"""
+        from ...core.models import Appointment
+        
+        # Verify doctor has seen this patient
+        has_relation = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.patient_id == patient_id
+        ).first()
+        
+        if not has_relation:
+            raise ValueError("Patient not found in your records")
+        
+        completed = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.patient_id == patient_id,
+            Appointment.status == 'completed'
+        ).count()
+        
+        upcoming = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.patient_id == patient_id,
+            Appointment.status == 'scheduled',
+            Appointment.appointment_date >= date.today()
+        ).count()
+        
+        cancelled = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.patient_id == patient_id,
+            Appointment.status.in_(['cancelled', 'no_show'])
+        ).count()
+        
+        return {
+            'completed': completed,
+            'upcoming': upcoming,
+            'cancelled': cancelled
+        }
+
+    @staticmethod
+    def get_patient_records(doctor_id: int, patient_id: int) -> List[dict]:
+        """Get medical records for a patient (doctor's own records)"""
+        from ..medical_records.service import MedicalRecordService
+        
+        # Get doctor's department for access control
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            raise ValueError("Doctor not found")
+        
+        return MedicalRecordService.get_patient_history(
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            department_id=doctor.department_id,
+            include_doctor_notes=True
+        )
+
 
 
     @staticmethod
