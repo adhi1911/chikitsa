@@ -71,17 +71,6 @@
                 <span v-if="!sidebarCollapsed">Appointments</span>
               </router-link>
             </li>
-
-            <li class="nav-item mb-1">
-              <router-link 
-                to="/admin/holidays" 
-                class="nav-link rounded"
-                :class="{ 'active': isActive('/admin/holidays') }"
-              >
-                <i class="bi bi-calendar-x me-2"></i>
-                <span v-if="!sidebarCollapsed">Holidays</span>
-              </router-link>
-            </li>
           </ul>
         </nav>
 

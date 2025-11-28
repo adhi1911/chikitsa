@@ -734,7 +734,7 @@ def delete_hospital_holiday():
 def get_all_appointments():
     """Get all appointments"""
     try:
-        appointments = AppointmentService.get_all(
+        appointments = AppointmentService.get_all_appointments(
             doctor_id=request.args.get('doctor_id', type=int),
             patient_id=request.args.get('patient_id', type=int),
             status=request.args.get('status'),
@@ -839,6 +839,25 @@ def get_record(record_id):
         logger.error(f"Failed to get record: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
+
+@admin_bp.route('/appointments/<int:appointment_id>/record', methods=['GET'])
+@jwt_required()
+@admin_required
+def get_appointment_record(appointment_id):
+    """Get medical record for a specific appointment"""
+    try:
+        record = MedicalRecordService.get_by_appointment(appointment_id, include_doctor_notes=True)
+
+        if not record:
+            return jsonify({'status': 'error', 'message': 'No medical record found for this appointment'}), 404
+
+        return jsonify({
+            'status': 'success',
+            'data': {'record': record}
+        })
+    except Exception as e:
+        logger.error(f"Failed to get appointment record: {str(e)}", exc_info=True)
+        return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
 @admin_bp.route('/patients/<int:patient_id>/history', methods=['GET'])
 @jwt_required()

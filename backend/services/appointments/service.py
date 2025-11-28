@@ -239,6 +239,59 @@ class AppointmentService:
         return [AppointmentService._to_dict(apt) for apt in appointments]
 
 
+    @staticmethod
+    def get_all_appointments(
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        status: Optional[str] = None,
+        doctor_id: Optional[int] = None,
+        patient_id: Optional[int] = None
+    ) -> List[dict]:
+        """Get all appointments with filters"""
+        
+        query = Appointment.query
+
+        if start_date:
+            query = query.filter(Appointment.appointment_date >= start_date)
+        if end_date:
+            query = query.filter(Appointment.appointment_date <= end_date)
+        if status:
+            query = query.filter(Appointment.status == status)
+        if doctor_id:
+            query = query.filter(Appointment.doctor_id == doctor_id)
+        if patient_id:
+            query = query.filter(Appointment.patient_id == patient_id)
+
+        appointments = query.order_by(
+            Appointment.appointment_date.desc(),
+            Appointment.appointment_time.desc()
+        ).all()
+
+        result = []
+        for apt in appointments:
+            # Check if medical record exists
+            has_record = MedicalRecord.query.filter_by(appointment_id=apt.id).first() is not None
+
+            result.append({
+                'id': apt.id,
+                'patient_id': apt.patient_id,
+                'patient_name': f"{apt.patient.first_name} {apt.patient.last_name}" if apt.patient else None,
+                'doctor_id': apt.doctor_id,
+                'doctor_name': f"{apt.doctor.first_name} {apt.doctor.last_name}" if apt.doctor else None,
+                'department': apt.doctor.department.name if apt.doctor and apt.doctor.department else None,
+                'specialization': apt.doctor.specialization if apt.doctor else None,
+                'appointment_date': apt.appointment_date.isoformat(),
+                'appointment_time': apt.appointment_time.strftime('%H:%M'),
+                'status': apt.status,
+                'booking_notes': apt.booking_notes,
+                'consultation_fee': float(apt.doctor.consultation_fee) if apt.doctor else None,
+                'has_medical_record': has_record,
+                'created_at': apt.created_at.isoformat() if apt.created_at else None,
+                'updated_at': apt.updated_at.isoformat() if apt.updated_at else None
+            })
+
+        return result
+
 ########### UPDATE APPOINTMENT ###########
 
     @staticmethod
