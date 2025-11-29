@@ -217,7 +217,7 @@ class MedicalRecordService:
             appointments = Appointment.query.filter(
                 Appointment.patient_id == patient_id,
                 Appointment.status == 'completed'
-            ).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+            ).order_by(Appointment.appointment_date.desc(), Appointment.appointment_time.desc()).all()
 
             export_data = []
 

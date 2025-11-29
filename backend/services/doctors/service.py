@@ -996,7 +996,7 @@ class DoctorService:
                 total_prescriptions += 1
             
             # follow-ups 
-            if record.follow_up_date: 
+            if record.followup_date: 
                 total_followups += 1
 
         # sort diagnosis by count

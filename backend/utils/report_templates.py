@@ -22,7 +22,7 @@ def generate_monthly_report_html(
         diagnoses_html+= f"""
             <tr>
                 <td style="padding: 10px 15px;">{i}</td>
-                <td style="padding: 10px 15px;">{diag['name']}</td>
+                <td style="padding: 10px 15px;">{diag['diagnosis']}</td>
                 <td style="padding: 10px 15px; text-align: center;">
                     <span style="background: #e3f2fd; color: #1976d2; padding: 4px 12px; border-radius: 20px; font-weight: 600;">
                         {diag['count']}

@@ -1,9 +1,16 @@
 <template>
   <div class="medical-records-view">
-    <PageHeader 
+    <div class="page-header d-flex justify-content-between align-items-center mb-4">
+          <PageHeader 
       title="My Medical Records" 
       subtitle="View your consultation history and prescriptions"
     />
+    <ExportRecordsButton 
+        :default-email="userEmail" 
+        @exported="handleExported" 
+      />
+    </div>
+
 
     <!-- Search & Filter -->
     <div class="card border-0 shadow-sm mb-4">
@@ -151,13 +158,15 @@ import api from '@/services/api';
 import PageHeader from '@/components/common/PageHeader.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
 import MedicalRecordModal from '@/components/medicalRecord/MedicalRecordModal.vue';
+import ExportRecordsButton from '@/components/patient/ExportRecordsButton.vue';
 
 export default {
   name: 'MedicalRecordsView',
   components: {
     PageHeader,
     EmptyState,
-    MedicalRecordModal
+    MedicalRecordModal,
+    ExportRecordsButton
   },
   data() {
     return {
@@ -230,6 +239,19 @@ export default {
       }
     },
 
+    async fetchUserEmail(){
+      try{
+        const res = await api.get('patient/profile')
+        this.userEmail = res.data?.data?.patient?.email || '';
+      }catch(e){
+        console.error('Failed to fetch user email:', e);
+      }
+    },
+
+    handleExported(date){
+      console.log('Records exported on:', date);
+    },
+
     clearFilters() {
       this.searchQuery = '';
       this.filterDepartment = '';
@@ -272,6 +294,7 @@ export default {
   },
   mounted() {
     this.fetchRecords();
+    this.fetchUserEmail();
   }
 };
 </script>

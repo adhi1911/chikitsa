@@ -205,6 +205,15 @@
                   >
                     <i class="bi bi-trash"></i>
                   </button>
+                  <button class="btn btn-outline-secondary btn-sm" @click="viewPatient(patient.id)">
+                    View
+                  </button>
+                  <ExportPatientsRecordButton 
+                    :patient-id="patient.id"
+                    :patient-name="`${patient.first_name} ${patient.last_name}`"
+                    :patient-email="patient.email"
+                    @exported="onExported"
+                  />
                 </div>
               </td>
             </tr>
@@ -274,6 +283,7 @@ import EmptyState from '@/components/common/EmptyState.vue';
 import ConfirmModal from '@/components/common/ConfirmModal.vue';
 import PatientFormModal from '@/components/admin/PatientFormModal.vue';
 import PatientViewModal from '@/components/admin/PatientViewModal.vue';
+import ExportPatientsRecordButton from '@/components/admin/ExportPatientsRecordButton.vue';
 
 export default {
   name: 'PatientListView',
@@ -284,7 +294,8 @@ export default {
     EmptyState,
     ConfirmModal,
     PatientFormModal,
-    PatientViewModal
+    PatientViewModal,
+    ExportPatientsRecordButton
   },
   data() {
     return {
@@ -480,7 +491,13 @@ export default {
         console.error(`Failed to ${action} patient:`, e);
         alert(e.response?.data?.message || `Failed to ${action} patient`);
     }
-  }
+    },
+    viewPatient(id){
+      this.$router.push(`/admin/patients/${id}`);
+    },
+    onExported(data) {
+      console.log('Patient records exported:', data);
+    }
   },
   mounted() {
     this.fetchPatients();

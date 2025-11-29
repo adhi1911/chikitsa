@@ -1,11 +1,14 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 from ...core.database import db
 from ...core.logger import logger
 from ...core.models import User, Patient
 from ...auth.service import AuthService
 from ...auth.schema import RegisterPatient
+from ..medical_records.service import MedicalRecordService
+from  ...utils.csv_export import generate_patient_records_csv, generate_csv_export_mail_html
+from ...core.mail import send_email
 
 
 class PatientService:
@@ -129,4 +132,69 @@ class PatientService:
             'updated_at': patient.updated_at.isoformat() if patient.updated_at else None
         }
     
-    
+    @staticmethod
+    def export_patient_records(patient_id: int, email: Optional[str]=None) -> Dict: 
+        """Generate and send csv of patient records"""
+
+        logger.info(f"Starting CSV export for patient {patient_id}")
+
+        patient = Patient.query.get(patient_id)
+        if not patient:
+            return {'status': 'error', 'message': 'Patient not found'}
+        
+        patient_name = f"{patient.first_name} {patient.last_name}"
+        target_email = email or (patient.user.email if patient.user else None)
+        
+        if not target_email:
+            return {'status': 'error', 'message': 'No email address available'}
+
+        try:
+            records = MedicalRecordService.get_patient_export_data(patient_id)
+            
+            if not records:
+                return {'status': 'warning', 'message': 'No medical records found'}
+            
+            csv_content = generate_patient_records_csv(
+            patient_id=patient_id,
+            patient_name=patient_name,
+            records=records
+            )
+
+            timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+            filename = f"patient_{patient_id}_records_{timestamp}.csv"
+
+            html_body = generate_csv_export_mail_html(
+                patient_name=patient_name,
+                filename=filename,
+                generated_at=datetime.utcnow(),
+                records_count=len(records)
+            )
+
+            success = send_email(
+                to=target_email,
+                subject="Your Medical Records Export",
+                html_body=html_body,
+                attachments=[{
+                    'filename': filename,
+                    'content_type': 'text/csv',
+                    'data': csv_content
+                }]
+            )
+
+            if success:
+                logger.info(f"Export sent to {target_email} for patient {patient_id}")
+                return {
+                    'status': 'success',
+                    'message': 'Export sent successfully',
+                    'email': target_email,
+                    'filename': filename,
+                    'records_count': len(records)
+                }
+            else:
+                return {'status': 'error', 'message': 'Failed to send email'}
+            
+        except Exception as e:
+            logger.error(f"Export failed for patient {patient_id}: {e}")
+            return {'status': 'error', 'message': str(e)}
+            
+            

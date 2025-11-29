@@ -7,7 +7,7 @@ def generate_appointment_reminder_html(
     appointment_time: str,
     doctor_name: str,
     department: str,
-    hospital_phone: str = "+91-XXXXXXXXXX"
+    hospital_phone: str 
 ) -> str:
     """Generate HTML email for appointment reminder"""
     
@@ -168,7 +168,7 @@ def generate_appointment_reminder_html(
         </div>
         <div class="footer">
             <p>This is an automated reminder. Please do not reply to this email.</p>
-            <p>© 2024 Chikitsa Hospital. All rights reserved.</p>
+            <p>© 2025 Chikitsa Hospital. All rights reserved.</p>
         </div>
     </div>
 </body>

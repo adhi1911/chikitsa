@@ -341,6 +341,47 @@ def get_medical_record(record_id):
         logger.error(f"Failed to get medical record: {str(e)}", exc_info=True)
         return jsonify({'status': 'error', 'message': 'Internal server error'}), 500
 
+@patient_bp.route('/export-records', methods=['POST'])
+@jwt_required()
+@patient_required
+def export_my_records():
+    """
+    Export current patient's medical records as CSV via email.
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        
+        patient = PatientService.get_patient_by_user_id(current_user_id)
+        if not patient:
+            return jsonify({'error': 'Patient profile not found'}), 404
+        
+        data = request.get_json() or {}
+        alternate_email = data.get('email')
+        
+        result = PatientService.export_patient_records(
+            patient_id=patient['id'],
+            email=alternate_email
+        )
+        
+        if result['status'] == 'success':
+            return jsonify({
+                'message': result['message'],
+                'email': result['email'],
+                'records_count': result['records_count']
+            }), 200
+        elif result['status'] == 'warning':
+            return jsonify({
+                'message': result['message'],
+                'records_count': 0
+            }), 200
+        else:
+            return jsonify({'error': result['message']}), 400
+            
+    except Exception as e:
+        logger.error(f"Export records error: {e}")
+        return jsonify({'error': 'Failed to export records'}), 500
+    
+
 
 @patient_bp.route('/appointments/<int:appointment_id>/record', methods=['GET'])
 @jwt_required()

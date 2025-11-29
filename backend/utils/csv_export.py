@@ -42,22 +42,23 @@ def generate_patient_records_csv(
     ])
 
     for record in records:
-        medicines_str = format_medicines(record.get('medicines', []))
+        medicines_str = format_medicines(record['medicines'])
 
         writer.writerow([
             patient_id, 
             patient_name,
-            record.get('appointment_date', ''),
-            record.get('appointment_time', ''),
-            record.get('doctor_name', ''),
-            record.get('department', ''),
-            record.get('diagnosis', ''),
-            record.get('symptoms', ''),
-            record.get('treatment_notes', ''),
+            record['appointment_date'],
+            record['appointment_time'],
+            record['doctor_name'],
+            record['department'],
+            record['diagnosis'],
+            record['symptoms'],
+            record['treatment_notes'],
             medicines_str or '',
-            record.get('followup_date', '' )
+            record['followup_date']
         ])
 
+    return output.getvalue()
 
 
 def format_medicines(medicines: List[Dict]) -> str:
@@ -65,22 +66,26 @@ def format_medicines(medicines: List[Dict]) -> str:
     if not medicines:
         return ''
 
-    formatted = []
-    for med in medicines: 
-        med_str = med.get('medicine_name', 'Unknown Medicine')
-
-        if med.get('dosage'):
-            med_str += f" ({med['dosage']})"
-        if med.get('frequency'):
-            med_str += f", {med['frequency']}"
-        if med.get('duration'):
-            med_str += f", for {med['duration']}"
-        if med.get('instructions'):
-            med_str += f" - {med['instructions']}"
+    if isinstance(medicines, list) and len(medicines) > 0:
+        if isinstance(medicines[0], str):
+            return "; ".join(medicines)
         
-        formatted.append(med_str)
+        formatted = []
+        for med in medicines: 
+            med_str = med.get('medicine_name', 'Unknown Medicine')
 
-    return "; ".join(formatted)
+            if med.get('dosage'):
+                med_str += f" ({med['dosage']})"
+            if med.get('frequency'):
+                med_str += f", {med['frequency']}"
+            if med.get('duration'):
+                med_str += f", for {med['duration']}"
+            if med.get('instructions'):
+                med_str += f" - {med['instructions']}"
+            
+            formatted.append(med_str)
+
+        return "; ".join(formatted)
 
 def generate_csv_export_mail_html(
         patient_name: str, 
@@ -199,7 +204,7 @@ def generate_csv_export_mail_html(
                 </div>
                 <div class="info-row">
                     <span class="info-label">Generated:</span>
-                    <span class="info-value">{generated_at.strftime('%B %d, %Y at %I:%M %p')}</span>
+                    <span class="info-value">{generated_at}</span>
                 </div>
             </div>
             
