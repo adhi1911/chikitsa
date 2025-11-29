@@ -11,6 +11,7 @@ from backend.core.models import (User,
                          Patient,
                          Doctor, Department, DoctorUnavailability, DoctorWorkingHours,
                          Appointment, Notification, MedicalRecord, PrescriptionItem, TokenBlacklist)
+from backend.core.mail import init_mail, mail 
 
 from backend.auth.routes import auth_bp
 from backend.services.admin.routes import admin_bp
@@ -65,6 +66,7 @@ def create_app():
     app.config.from_object(Config)
     bcrypt.init_app(app)
     jwt.init_app(app)
+    init_mail(app)
 
     CORS(app, origins=["http://localhost:8080", "http://127.0.0.1:8080"],
         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS","PATCH"],

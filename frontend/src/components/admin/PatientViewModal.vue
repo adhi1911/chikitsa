@@ -207,7 +207,7 @@ export default {
       const classes = {
         'scheduled': 'bg-primary-subtle text-primary',
         'completed': 'bg-success-subtle text-success',
-        'canceled': 'bg-danger-subtle text-danger',
+        'cancelled': 'bg-danger-subtle text-danger',
         'no_show': 'bg-warning-subtle text-warning'
       };
       return classes[status] || 'bg-secondary-subtle text-secondary';

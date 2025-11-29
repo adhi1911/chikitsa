@@ -5,7 +5,7 @@ from sqlalchemy import func
 
 from ...core.database import db
 from ...core.logger import logger
-from ...core.models import Appointment, Doctor, DoctorWorkingHours, DoctorUnavailability, User, Department
+from ...core.models import Appointment, Doctor, DoctorWorkingHours, DoctorUnavailability, User, Department, MedicalRecord, PrescriptionItem
 
 DAY_NAMES = {
     0: "Monday",
@@ -918,6 +918,134 @@ class DoctorService:
             'slots': slots,
             'summary': summary
         }
+
+
+
+    ################################
+
+
+    @staticmethod
+    def get_all_active_doctors() -> List[dict]:
+        """Get all active doctors with their email (for monthly reports)"""
+        doctors = Doctor.query.filter_by(is_available=True).all()
+        
+        result = []
+        for doctor in doctors:
+            user = doctor.user
+            if not user or not user.email:
+                continue  # Skip if no email
+            
+            result.append({
+                'id': doctor.id,
+                'user_id': doctor.user_id,
+                'name': f"{doctor.first_name} {doctor.last_name}",
+                'first_name': doctor.first_name,
+                'last_name': doctor.last_name,
+                'email': user.email,
+                'department': doctor.department.name if doctor.department else 'General',
+                'department_id': doctor.department_id,
+                'specialization': doctor.specialization
+            })
+        
+        return result
+    
+
+    @staticmethod 
+    def get_doctor_monthly_report_data(doctor_id:int, start_date:date, end_date:date) -> dict: 
+        """Get monthly appointment stats for a doctor"""
+
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            raise ValueError("Doctor not found")
+        
+        start_datetime = datetime.combine(start_date, time.min)
+        end_datetime = datetime.combine(end_date, time.max)
+
+        ## appoitnmetn stats 
+        base_query = Appointment.query.filter(
+            Appointment.doctor_id == doctor_id,
+            Appointment.appointment_date >= start_date,
+            Appointment.appointment_date <= end_date
+        )
+
+        total_appointments = base_query.count()
+        completed = base_query.filter(Appointment.status == 'completed').count()
+        cancelled = base_query.filter(Appointment.status == 'cancelled').count()
+        no_show = base_query.filter(Appointment.status == 'no_show').count()
+        scheduled = base_query.filter(Appointment.status == 'scheduled').count()
+
+        ## medical records data 
+        records = MedicalRecord.query.filter(
+            MedicalRecord.doctor_id == doctor_id,
+            MedicalRecord.created_at >= start_datetime,
+            MedicalRecord.created_at <= end_datetime
+        ).order_by(MedicalRecord.created_at.desc()).all()
+
+        # diagnosis 
+        diagnosis_counts = {}
+        total_prescriptions = 0
+        total_followups = 0
+
+        for record in records: 
+            if record.diagnosis: 
+                diag = record.diagnosis.strip().lower()
+                diagnosis_counts[diag] = diagnosis_counts.get(diag, 0) + 1
+
+            # prescriptions
+            if record.prescription_items and len(record.prescription_items) > 0:
+                total_prescriptions += 1
+            
+            # follow-ups 
+            if record.follow_up_date: 
+                total_followups += 1
+
+        # sort diagnosis by count
+        top_diagnosis = sorted(
+            [{'diagnosis': k, 'count': v} for k, v in diagnosis_counts.items()],
+            key=lambda x: x['count'],
+            reverse=True
+        )[:5]
+
+        ## Consultations 
+        consultation = []
+
+        for record in records[:20]: 
+            patient = record.patient
+            consultation.append({
+                'date': record.created_at.strftime('%d %b') if record.created_at else 'N/A',
+                'patient': f"{patient.first_name} {patient.last_name}" if patient else 'Unknown',
+                'diagnosis': record.diagnosis or 'N/A',
+                'rx_count': len(record.prescription_items) if record.prescription_items else 0
+            })
+
+
+        return {
+            'doctor':{
+                'id': doctor.id, 
+                'name': f"Dr. {doctor.first_name} {doctor.last_name}",
+                'department': doctor.department.name if doctor.department else 'General',
+                'email': doctor.user.email if doctor.user else None
+            },
+            'period': {
+                'start_date': start_date.isoformat(),
+                'end_date': end_date.isoformat()
+            },
+            'appointments': {
+                'total': total_appointments,
+                'completed': completed,
+                'cancelled': cancelled,
+                'no_show': no_show,
+                'scheduled': scheduled
+            },
+            'top_diagnosis': top_diagnosis,
+            'consultations': consultation,
+            'summary':{
+                'total_records': len(records),
+                'total_prescriptions': total_prescriptions,
+                'total_followups': total_followups
+            }
+        }
+
 
     ########### HELPERS ###########
 

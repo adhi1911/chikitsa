@@ -94,7 +94,7 @@
               <i class="bi bi-pencil me-1"></i>Edit
             </button>
             <div v-else>
-              <button class="btn btn-light btn-sm me-2" @click="cancelEdit">
+              <button class="btn btn-light btn-sm me-2" @click="cancelledit">
                 Cancel
               </button>
               <button 
@@ -404,7 +404,7 @@ export default {
       this.editing = true;
     },
 
-    cancelEdit() {
+    cancelledit() {
       this.editing = false;
       this.form = {};
     },

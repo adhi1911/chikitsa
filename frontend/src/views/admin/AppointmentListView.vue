@@ -950,7 +950,7 @@ export default {
       try {
         this.cancelling = true;
         await api.patch(`/admin/appointments/${this.selectedAppointment.id}/status`, {
-          status: 'canceled',
+          status: 'cancelled',
           reason: this.cancelReason
         });
         this.modals.cancel.hide();

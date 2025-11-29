@@ -145,7 +145,7 @@ export default {
       const badges = {
         scheduled: 'bg-info-subtle text-info',
         completed: 'bg-success-subtle text-success',
-        canceled: 'bg-danger-subtle text-danger',
+        cancelled: 'bg-danger-subtle text-danger',
         no_show: 'bg-warning-subtle text-warning'
       };
       return badges[status] || 'bg-secondary';

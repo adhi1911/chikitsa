@@ -1,5 +1,5 @@
 from datetime import datetime 
-from typing import Optional, List 
+from typing import Dict, Optional, List 
 
 from ...core.database import db 
 from ...core.logger import logger
@@ -207,6 +207,55 @@ class MedicalRecordService:
         records = query.order_by(MedicalRecord.created_at.desc()).all()
 
         return [MedicalRecordService._record_to_dict(r, include_doctor_notes=True) for r in records]
+
+
+    @staticmethod 
+    def get_patient_export_data(patient_id: int) -> List[Dict]:
+        """Get Patients complete medical records for csv """
+
+        try: 
+            appointments = Appointment.query.filter(
+                Appointment.patient_id == patient_id,
+                Appointment.status == 'completed'
+            ).order_by(Appointment.date.desc(), Appointment.time.desc()).all()
+
+            export_data = []
+
+            for apt in appointments: 
+                doctor = apt.doctor
+                record = MedicalRecord.query.filter_by(appointment_id=apt.id).first()
+
+                medicines = []
+                if record and record.prescription_items:
+                    for item in record.prescription_items: 
+                        med_str = item.medicine_name
+                        if item.dosage:
+                            med_str += f" ({item.dosage})"
+                        if item.frequency:
+                            med_str += f", {item.frequency}"
+                        if item.duration:
+                            med_str += f", for {item.duration}"
+                        if item.instructions:
+                            med_str += f" - {item.instructions}"
+                        medicines.append(med_str)
+                
+                export_data.append({
+                    'appointment_date': apt.appointment_date.strftime('%Y-%m-%d'),
+                    'appointment_time': apt.appointment_time.strftime('%H:%M'),
+                    'doctor_name': f"{doctor.first_name} {doctor.last_name}" if doctor else None,
+                    'department': doctor.department.name if doctor and doctor.department else None,
+                    'diagnosis': record.diagnosis if record else None,
+                    'symptoms': record.symptoms if record else None,
+                    'treatment_notes': record.treatment_notes if record else None,
+                    'medicines': medicines,
+                    'followup_date': record.followup_date.strftime('%Y-%m-%d') if record and record.followup_date else None
+                })
+            return export_data
+        
+        except Exception as e:
+            logger.error(f"Error fetching export data for patient {patient_id}: {e}")
+            raise
+
 
     ######### PRESCRIPTION ITEMS #########
     @staticmethod
