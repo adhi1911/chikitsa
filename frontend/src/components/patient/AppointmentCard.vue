@@ -87,7 +87,7 @@ export default {
       switch (this.appointment.status) {
         case 'scheduled': return 'bg-primary-subtle text-primary';
         case 'completed': return 'bg-success-subtle text-success';
-        case 'cancelled': return 'bg-danger-subtle text-danger';
+        case 'canceled': return 'bg-danger-subtle text-danger';
         case 'no_show': return 'bg-warning-subtle text-warning';
         default: return 'bg-secondary-subtle text-secondary';
       }
@@ -96,7 +96,7 @@ export default {
       switch (this.appointment.status) {
         case 'scheduled': return 'bi bi-clock';
         case 'completed': return 'bi bi-check-circle';
-        case 'cancelled': return 'bi bi-x-circle';
+        case 'canceled': return 'bi bi-x-circle';
         case 'no_show': return 'bi bi-exclamation-circle';
         default: return 'bi bi-question-circle';
       }

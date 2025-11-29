@@ -15,7 +15,7 @@ export default {
       default: () => ({
         scheduled: { class: 'bg-info-subtle text-info', text: 'Scheduled' },
         completed: { class: 'bg-success-subtle text-success', text: 'Completed' },
-        cancelled: { class: 'bg-danger-subtle text-danger', text: 'Cancelled' },
+        canceled: { class: 'bg-danger-subtle text-danger', text: 'Canceled' },
         no_show: { class: 'bg-warning-subtle text-warning', text: 'No Show' },
         pending: { class: 'bg-warning-subtle text-warning', text: 'Pending' },
         active: { class: 'bg-success-subtle text-success', text: 'Active' },
