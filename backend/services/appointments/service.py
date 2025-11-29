@@ -140,6 +140,17 @@ class AppointmentService:
         if existing_appointment:
             raise ValueError("The selected time slot is already booked")
         
+        # cross-check if patient has another appointment at same time
+        existing_patient_appointment = Appointment.query.filter_by(
+            patient_id = patient_id ,
+            appointment_date=appointment_date,
+            appointment_time=apt_time,
+            status="scheduled"
+        ).first()
+
+        if existing_patient_appointment:
+            raise ValueError("You already have an appointment at the selected time")
+        
         appointment = Appointment(
             patient_id=patient_id,
             doctor_id=doctor_id,
