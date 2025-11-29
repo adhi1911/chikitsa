@@ -46,6 +46,12 @@ const routes = [
         component: () => import('../views/admin/PatientListView.vue')
       },
       {
+        path: 'patients/:id',
+        name: 'patient-detail',
+        component: () => import('../views/doctor/PatientDetailView.vue'),
+        props: true
+      },
+      {
         path: 'appointments',
         name: 'appointment-list',
         component: () => import('../views/admin/AppointmentListView.vue')

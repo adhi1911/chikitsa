@@ -277,6 +277,12 @@ export default {
     patientId() {
       return this.$route.params.id;
     },
+    isAdmin(){
+      return this.$store.getters['auth/userRole'] === 'admin';
+    },
+    apiBasePath() {
+      return this.isAdmin ? '/admin' : '/doctor';
+    },
     filteredRecords() {
       if (this.filterType === 'with_prescription') {
         return this.records.filter(r => r.prescription_items?.length > 0);
@@ -310,7 +316,7 @@ export default {
         this.loading = true;
         this.error = null;
 
-        const response = await api.get(`/doctor/patients/${this.patientId}/history`);
+        const response = await api.get(`${this.apiBasePath}/patients/${this.patientId}/history`);
         
         if (response.data.status === 'success') {
           this.patient = response.data.data.patient || {};

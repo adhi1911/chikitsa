@@ -308,14 +308,6 @@
                     <i class="bi bi-eye"></i>
                   </button>
                   <button 
-                    class="btn btn-sm btn-outline-success"
-                    v-if="appointment.status === 'scheduled'"
-                    @click="markCompleted(appointment)"
-                    title="Mark Completed"
-                  >
-                    <i class="bi bi-check-lg"></i>
-                  </button>
-                  <button 
                     class="btn btn-sm btn-outline-danger"
                     v-if="appointment.status === 'scheduled'"
                     @click="confirmCancel(appointment)"
@@ -525,14 +517,6 @@
             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
             <button 
               type="button" 
-              class="btn btn-success"
-              v-if="selectedAppointment?.status === 'scheduled'"
-              @click="markCompletedFromModal"
-            >
-              <i class="bi bi-check-lg me-2"></i>Mark Completed
-            </button>
-            <button 
-              type="button" 
               class="btn btn-danger"
               v-if="selectedAppointment?.status === 'scheduled'"
               @click="cancelFromModal"
@@ -591,80 +575,7 @@
       </div>
     </div>
 
-    <!-- Medical Record Modal -->
-    <div class="modal fade" id="recordModal" tabindex="-1" ref="recordModal">
-      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-semibold">
-              <i class="bi bi-file-medical me-2 text-success"></i>Medical Record
-            </h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <div v-if="loadingRecord" class="text-center py-4">
-              <div class="spinner-border text-primary" role="status"></div>
-            </div>
-            <div v-else-if="medicalRecord">
-              <div class="row g-4">
-                <div class="col-12">
-                  <label class="form-label text-muted small fw-semibold">DIAGNOSIS</label>
-                  <p class="fw-medium">{{ medicalRecord.diagnosis }}</p>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label text-muted small fw-semibold">SYMPTOMS</label>
-                  <p>{{ medicalRecord.symptoms || 'Not recorded' }}</p>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label text-muted small fw-semibold">FOLLOW-UP DATE</label>
-                  <p>{{ medicalRecord.followup_date ? formatFullDate(medicalRecord.followup_date) : 'None scheduled' }}</p>
-                </div>
-                <div class="col-12">
-                  <label class="form-label text-muted small fw-semibold">TREATMENT NOTES</label>
-                  <p>{{ medicalRecord.treatment_notes || 'No notes' }}</p>
-                </div>
-                <div class="col-12">
-                  <label class="form-label text-muted small fw-semibold">DOCTOR NOTES</label>
-                  <p class="text-muted fst-italic">{{ medicalRecord.doctor_notes || 'No internal notes' }}</p>
-                </div>
-                <div class="col-12" v-if="medicalRecord.prescription_items?.length > 0">
-                  <label class="form-label text-muted small fw-semibold">PRESCRIPTION</label>
-                  <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                      <thead class="table-light">
-                        <tr>
-                          <th>Medicine</th>
-                          <th>Dosage</th>
-                          <th>Frequency</th>
-                          <th>Duration</th>
-                          <th>Instructions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="item in medicalRecord.prescription_items" :key="item.id">
-                          <td>{{ item.medicine_name }}</td>
-                          <td>{{ item.dosage || '-' }}</td>
-                          <td>{{ item.frequency || '-' }}</td>
-                          <td>{{ item.duration || '-' }}</td>
-                          <td>{{ item.instructions || '-' }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center py-4">
-              <i class="bi bi-file-x display-4 text-muted"></i>
-              <p class="mt-2 text-muted">No medical record found</p>
-            </div>
-          </div>
-          <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    
   </div>
 </template>
 
@@ -1039,7 +950,7 @@ export default {
       try {
         this.cancelling = true;
         await api.patch(`/admin/appointments/${this.selectedAppointment.id}/status`, {
-          status: 'cancelled',
+          status: 'canceled',
           reason: this.cancelReason
         });
         this.modals.cancel.hide();
@@ -1049,21 +960,6 @@ export default {
       } finally {
         this.cancelling = false;
       }
-    },
-    async markCompleted(appointment) {
-      if (!confirm('Mark this appointment as completed?')) return;
-      try {
-        await api.patch(`/admin/appointments/${appointment.id}/status`, {
-          status: 'completed'
-        });
-        await this.fetchAppointments();
-      } catch (error) {
-        alert(error.response?.data?.message || 'Failed to update appointment');
-      }
-    },
-    markCompletedFromModal() {
-      this.modals.view.hide();
-      this.markCompleted(this.selectedAppointment);
     },
     async markNoShow(appointment) {
       if (!confirm('Mark this appointment as No Show?')) return;
@@ -1151,7 +1047,6 @@ export default {
     this.modals = {
       view: new Modal(this.$refs.viewModal),
       cancel: new Modal(this.$refs.cancelModal),
-      record: new Modal(this.$refs.recordModal)
     };
   }
 };

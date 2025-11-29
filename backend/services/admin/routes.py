@@ -417,7 +417,7 @@ def get_doctors():
 def get_patients():
     """Get all patients"""
     try:
-        include_inactive = request.args.get('include_inactive', '').lower() == 'true'
+        include_inactive = True
         patients = PatientService.get_patients(include_inactive)
         return jsonify({
             'status': 'success',
@@ -871,7 +871,6 @@ def get_patient_full_history(patient_id):
         records = MedicalRecordService.get_patient_history(
             patient_id=patient_id,
             doctor_id=doctor_id,
-            department_id=department_id,
             include_doctor_notes=True
         )
 

@@ -166,6 +166,14 @@
                   <i class="bi bi-clock"></i>
                 </button>
                 <button 
+                    class="btn btn-sm"
+                    :class="doctor.is_available ? 'btn-outline-warning' : 'btn-outline-success'"
+                    @click="toggleStatus(doctor)"
+                    :title="doctor.is_available ? 'Deactivate' : 'Activate'"
+                  >
+                    <i :class="doctor.is_available ? 'bi bi-person-slash' : 'bi bi-person-check'"></i>
+                  </button>
+                <button 
                   class="btn btn-sm btn-outline-danger"
                   @click="confirmDelete(doctor)"
                   title="Delete"
@@ -996,6 +1004,23 @@ export default {
         console.error('Error deleting doctor:', err);
       } finally {
         this.deleting = false;
+      }
+    },
+
+    async toggleStatus(doctor) {
+      const action = doctor.is_available ? 'blacklist' : 'activate';
+      if (!confirm(`Are you sure you want to ${action} this doctor?`)) return;
+
+      try {
+        // First get the user_id for this doctor
+        const response = await api.get(`/admin/doctors/${doctor.id}`);
+        const userId = response.data.data.doctor.user_id;
+        
+        await api.patch(`/admin/users/${userId}/status`);
+        this.fetchDoctors();
+      } catch (e) {
+        console.error('Failed to toggle status:', e);
+        alert(e.response?.data?.message || 'Failed to update status');
       }
     }
   }
