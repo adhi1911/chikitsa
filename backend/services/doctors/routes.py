@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from ...core.logger import logger
 from ...core.auth import doctor_required
 from ...core.database import db
+from ...core.cache import cached, invalidate
 
 from .service import DoctorService
 from ..appointments.service import AppointmentService
@@ -29,6 +30,7 @@ def get_doctor_id_from_user(user_id: int) -> int:
 @doctor_bp.route('/profile', methods=['GET'])
 @jwt_required()
 @doctor_required
+@cached('doctor_profile', ttl=300)
 def get_my_profile():
     """Get doctor's own profile"""
     try:
@@ -64,6 +66,8 @@ def update_my_profile():
         data = request.get_json()
         profile = DoctorService.update_doctor_profile(doctor_id, data)
         
+        invalidate('doctor_profile')
+        invalidate('doctors')
         return jsonify({
             'status': 'success',
             'message': 'Profile updated successfully',
@@ -79,6 +83,7 @@ def update_my_profile():
 @doctor_bp.route('/dashboard/stats', methods=['GET'])
 @jwt_required()
 @doctor_required
+@cached('doctor_stats', ttl=60)
 def get_dashboard_stats():
     """Get doctor dashboard statistics"""
     try:
@@ -220,6 +225,7 @@ def get_patient_records(patient_id):
 @doctor_bp.route('/working-hours', methods=['GET'])
 @jwt_required()
 @doctor_required
+@cached('doctor_working_hours', ttl=900)
 def get_my_working_hours():
     """Get doctor's working hours"""
     try:
@@ -419,6 +425,7 @@ def get_my_calendar():
 @doctor_bp.route('/schedule/<string:date>', methods=['GET'])
 @jwt_required()
 @doctor_required
+@cached('doctor_daily_schedule', ttl=300)
 def get_daily_schedule(date):
     """Get detailed schedule for a specific day"""
     try:

@@ -5,6 +5,7 @@ from pydantic import ValidationError
 from ...core.logger import logger
 from ...core.auth import patient_required
 from ...core.models import Patient
+from ...core.cache import cached, invalidate
 from ..appointments.service import AppointmentService
 from ..appointments.schemas import AppointmentCreate, AppointmentUpdate
 from ..medical_records.service import MedicalRecordService
@@ -26,6 +27,7 @@ def get_patient_id_from_user(user_id: int) -> int:
 @patient_bp.route('/profile', methods=['GET'])
 @jwt_required()
 @patient_required
+@cached('patient_profile', ttl=300) 
 def get_my_profile():
     """Get current patient's profile"""
     try:
@@ -59,6 +61,8 @@ def update_my_profile():
         data = PatientUpdate(**request.get_json())
         patient = PatientService.update_patient(patient_id, data.model_dump(exclude_unset=True))
 
+        invalidate('patient_profile')
+        invalidate('patients')
         return jsonify({
             'status': 'success',
             'message': 'Profile updated successfully',
@@ -124,7 +128,7 @@ def book_appointment():
             appointment_time=data.appointment_time,
             notes=data.booking_notes
         )
-
+        invalidate('slots')
         return jsonify({
             'status': 'success',
             'message': 'Appointment booked successfully',

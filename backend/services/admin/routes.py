@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
+from ...core.cache import cached, invalidate 
+
 from ...core.models import MedicalRecord
 from ...core.auth import admin_required
 from ...core.logger import logger
@@ -83,6 +85,8 @@ def create_department():
     try:
         data = DepartmentCreate(**request.get_json())
         department = AdminService.create_department(data)
+
+        invalidate('departments')
         return jsonify({
             'status': 'success',
             'message': 'Department created successfully',
@@ -155,8 +159,10 @@ def update_department(dept_id):
             'message': 'Internal server error'
         }), 500
 
+
 @admin_bp.route('/departments', methods=['GET'])
 @jwt_required()
+@cached('departments',ttl=900) # 15 mins
 def get_departments():
     """Get all departments"""
     try:
@@ -249,6 +255,8 @@ def create_doctor():
         data = DoctorCreate(**request.get_json())
 
         doctor = AdminService.create_doctor(data)
+
+        invalidate('doctors')
         return jsonify({
             'status': 'success',
             'message': 'Doctor created successfully',
@@ -366,8 +374,10 @@ def get_doctor(doctor_id):
             'message': 'Internal server error'
         }), 500
     
+
 @admin_bp.route('/doctors', methods=['GET'])
 @jwt_required()
+@cached('doctors',ttl=900) # 15 mins
 def get_doctors():
     """Get all doctors, optionally filtered by department and availability"""
     try:
@@ -414,6 +424,7 @@ def get_doctors():
 @admin_bp.route('/patients', methods=['GET'])
 @jwt_required()
 @admin_required
+@cached('patients',ttl=900) # 15 mins
 def get_patients():
     """Get all patients"""
     try:
@@ -455,6 +466,8 @@ def create_patient():
     try:
         data = RegisterPatient(**request.get_json())
         patient = PatientService.create_patient(data)
+
+        invalidate('patients')
         return jsonify({
             'status': 'success',
             'message': 'Patient created successfully',

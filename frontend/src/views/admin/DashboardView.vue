@@ -29,7 +29,7 @@
      
      <!-- stats content -->
       <div v-else >
-      <p>{{ stats }}</p>
+      <!-- <p>{{ stats }}</p> -->
         <div class="row g-4 mb-4">
 
           <!-- patients -->
