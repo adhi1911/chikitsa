@@ -127,6 +127,8 @@ def update_department(dept_id):
     try:
         data = DepartmentUpdate(**request.get_json())
         department = AdminService.update_department(dept_id, data)
+
+        invalidate('departments')
         return jsonify({
             'status': 'success',
             'message': 'Department updated successfully',
@@ -233,6 +235,7 @@ def delete_department(dept_id):
             'status': 'success',
             'message': 'Department deleted successfully'
         })
+        invalidate('departments')
     except ValueError as e:
         return jsonify({
             'status': 'error',
@@ -300,6 +303,8 @@ def update_doctor(doctor_id):
     try:
         data = DoctorUpdate(**request.get_json())
         doctor = AdminService.update_doctor(doctor_id, data)
+
+        invalidate('doctors')
         return jsonify({
             'status': 'success',
             'message': 'Doctor updated successfully',
@@ -377,7 +382,7 @@ def get_doctor(doctor_id):
 
 @admin_bp.route('/doctors', methods=['GET'])
 @jwt_required()
-@cached('doctors',ttl=900) # 15 mins
+# @cached('doctors',ttl=900) # 15 mins
 def get_doctors():
     """Get all doctors, optionally filtered by department and availability"""
     try:
@@ -424,7 +429,7 @@ def get_doctors():
 @admin_bp.route('/patients', methods=['GET'])
 @jwt_required()
 @admin_required
-@cached('patients',ttl=900) # 15 mins
+# @cached('patients',ttl=900) # 15 mins
 def get_patients():
     """Get all patients"""
     try:
@@ -491,6 +496,7 @@ def update_patient(patient_id):
     try:
         data = PatientUpdate(**request.get_json())
         patient = PatientService.update_patient(patient_id, data.model_dump(exclude_unset=True))
+        invalidate('patients')
         return jsonify({
             'status': 'success',
             'message': 'Patient updated successfully',

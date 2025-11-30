@@ -27,13 +27,13 @@ def cached(prefix:str, ttl:int =30):
             if not REDIS_AVAILABLE: 
                 return func(*args, **kwargs)
             
-            key = f"chikitsa:{prefix}:{request.path}:{str(request.args)}"
-            key = hashlib.md5(key.encode()).hexdigest()
-
+            raw_key = f"{request.path}:{str(request.args)}"
+            key = hashlib.md5(raw_key.encode()).hexdigest()
+            key = f"chikitsa:{prefix}:{key}"
             try: 
                 cached_data = redis_client.get(key)
                 if cached_data: 
-                    logger.info(f"Cache hit for key: {key}")
+                    logger.info(f"Cache hit for key: {prefix}")
                     return jsonify(json.loads(cached_data)), 200 
             except Exception as e:
                 logger.error(f"Cache set error: {e}")
@@ -65,6 +65,7 @@ def invalidate(prefix:str):
             keys = redis_client.keys(f"chikitsa:{prefix}:*")
             if keys: 
                 redis_client.delete(*keys)
+                logger.info(f"Cache invalidated for prefix: {prefix}")
         except: 
             pass 
     

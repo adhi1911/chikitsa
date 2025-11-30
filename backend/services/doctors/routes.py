@@ -289,7 +289,7 @@ def create_my_unavailability():
         
         data = UnavailabilityCreate(**request.get_json())
         unavailability = DoctorService.create_unavailability(doctor_id, data.model_dump())
-        
+        invalidate('slots')
         return jsonify({
             'status': 'success',
             'message': 'Unavailability created successfully',
@@ -337,6 +337,7 @@ def update_my_unavailability(unavail_id):
         data = UnavailabilityUpdate(**request.get_json())
         unavailability = DoctorService.update_unavailability(unavail_id, data.model_dump(exclude_unset=True))
         
+        invalidate('slots')
         return jsonify({
             'status': 'success',
             'message': 'Unavailability updated successfully',

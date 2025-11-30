@@ -120,7 +120,7 @@
               </td>
               <td>
                 <span class="badge bg-info-subtle text-info">
-                  {{ dept.doctor_count || 0 }} doctors
+                  {{ dept.total_doctors || 0 }} doctors
                 </span>
               </td>
               <td>

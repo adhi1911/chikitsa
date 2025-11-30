@@ -125,9 +125,6 @@ class Appointment(db.Model):
     # Relationships
     medical_record = db.relationship('MedicalRecord', backref='appointment', uselist=False)
 
-    __table_args__ = (
-        db.UniqueConstraint('doctor_id', 'appointment_date', 'appointment_time'),
-    )
 
 
 class MedicalRecord(db.Model):

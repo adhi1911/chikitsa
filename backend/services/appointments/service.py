@@ -25,8 +25,8 @@ class AppointmentService:
     
     ######## APPOINTMENT SCHEDULING ###########
     @staticmethod
-    def get_available_slots(doctor_id: int, appointment_date:date) -> List[dict]: 
-        """Get available slot for a doctor on a specific date"""
+    def get_available_slots(doctor_id: int, appointment_date: date) -> List[dict]: 
+        """Get available slots for a doctor on a specific date"""
         doctor = Doctor.query.get(doctor_id)
         if not doctor:
             raise ValueError("Doctor not found")
@@ -35,31 +35,31 @@ class AppointmentService:
             return []
         
         if appointment_date < date.today():
-            return []    # cant book past dates
+            return []
         
         if appointment_date > date.today() + timedelta(days=AppointmentService.MAX_ADVANCE_DAYS):
-            return []  # beyond max advance booking
+            return []
         
-        day_of_week = appointment_date.weekday()  # 0=Monday, 6=Sunday
+        day_of_week = appointment_date.weekday()
 
         working_hours = DoctorWorkingHours.query.filter_by(
             doctor_id=doctor_id, day_of_week=day_of_week
         ).first()
 
         if not working_hours:
-            return []  # Doctor does not work on this day
+            return []
         
-        # check for unavailability in working hours 
-        start_of_day = datetime.combine(appointment_date, working_hours.start_time)
-        end_of_day = datetime.combine(appointment_date, working_hours.end_time)
+        # Get unavailability periods for this date
+        start_of_day = datetime.combine(appointment_date, time.min)
+        end_of_day = datetime.combine(appointment_date, time.max)
 
-        unavailability = DoctorUnavailability.query.filter(
+        unavailabilities = DoctorUnavailability.query.filter(
             DoctorUnavailability.doctor_id == doctor_id,
-            DoctorUnavailability.start_datetime <= start_of_day,
-            DoctorUnavailability.end_datetime >= end_of_day,
+            DoctorUnavailability.start_datetime <= end_of_day,
+            DoctorUnavailability.end_datetime >= start_of_day
         ).all()
 
-        # existing appointments
+        # Get existing appointments
         existing_appointments = Appointment.query.filter(
             Appointment.doctor_id == doctor_id,
             Appointment.appointment_date == appointment_date,
@@ -68,38 +68,40 @@ class AppointmentService:
 
         booked_times = {apt.appointment_time for apt in existing_appointments}
 
-        # generating slots 
+        # Generate slots
         slots = []
-        current_time = start_of_day
-        end_time = end_of_day
+        current_time = datetime.combine(appointment_date, working_hours.start_time)
+        end_time = datetime.combine(appointment_date, working_hours.end_time)
 
         while current_time < end_time: 
             slot_time = current_time.time()
-            slot_end = (current_time + timedelta(minutes=AppointmentService.SLOT_DURATION)).time()
+            slot_datetime = current_time
 
-            # check if slot is in past for today 
+            # Check if slot is in the past (for today)
             is_past = False 
             if appointment_date == date.today(): 
                 if slot_time <= datetime.now().time():
                     is_past = True
 
-            # check if already booked 
+            # Check if already booked
             is_booked = slot_time in booked_times
 
-            is_available = False 
-            slot_datetime = datetime.combine(appointment_date, slot_time)
-            for unavail in unavailability:
+            # Check if slot falls within any unavailability period
+            is_unavailable = False
+            for unavail in unavailabilities:
                 if unavail.start_datetime <= slot_datetime < unavail.end_datetime:
-                    is_available = False
+                    is_unavailable = True
                     break
             
-            is_available = not is_booked and not is_past and not is_available
+            # Slot is available only if: not booked, not past, not unavailable
+            is_available = not is_booked and not is_past and not is_unavailable
 
             slots.append({
                 "time": AppointmentService._format_time(slot_time),
                 "is_available": is_available,
-                'is_past': is_past,
-                'is_booked': is_booked
+                "is_past": is_past,
+                "is_booked": is_booked,
+                "is_unavailable": is_unavailable
             })
 
             current_time += timedelta(minutes=AppointmentService.SLOT_DURATION)

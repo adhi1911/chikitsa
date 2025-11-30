@@ -574,7 +574,85 @@
         </div>
       </div>
     </div>
+    <div class="modal fade" id="recordModal" tabindex="-1" ref="recordModal">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-semibold">
+              <i class="bi bi-file-medical me-2 text-primary"></i>Medical Record
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Loading -->
+            <div v-if="loadingRecord" class="text-center py-4">
+              <div class="spinner-border text-primary"></div>
+              <p class="mt-2 text-muted">Loading record...</p>
+            </div>
 
+            <!-- No Record -->
+            <div v-else-if="!medicalRecord" class="text-center py-4">
+              <i class="bi bi-file-earmark-x display-4 text-muted"></i>
+              <p class="mt-2 text-muted">No medical record found</p>
+            </div>
+
+            <!-- Record Content -->
+            <div v-else>
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label text-muted small fw-semibold">DIAGNOSIS</label>
+                  <p class="mb-0">{{ medicalRecord.diagnosis }}</p>
+                </div>
+                <div class="col-12">
+                  <label class="form-label text-muted small fw-semibold">SYMPTOMS</label>
+                  <p class="mb-0">{{ medicalRecord.symptoms }}</p>
+                </div>
+                <div class="col-12" v-if="medicalRecord.treatment_notes">
+                  <label class="form-label text-muted small fw-semibold">TREATMENT</label>
+                  <p class="mb-0">{{ medicalRecord.treatment_notes }}</p>
+                </div>
+                <div class="col-12" v-if="medicalRecord.doctor_notes">
+                  <label class="form-label text-muted small fw-semibold">DOCTOR NOTES</label>
+                  <p class="mb-0">{{ medicalRecord.doctor_notes }}</p>
+                </div>
+                <div class="col-6" v-if="medicalRecord.followup_date">
+                  <label class="form-label text-muted small fw-semibold">FOLLOW-UP DATE</label>
+                  <p class="mb-0">{{ formatFullDate(medicalRecord.followup_date) }}</p>
+                </div>
+
+                <!-- Prescriptions -->
+                <div class="col-12" v-if="medicalRecord.prescriptions?.length">
+                  <label class="form-label text-muted small fw-semibold">PRESCRIPTIONS</label>
+                  <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                      <thead class="table-light">
+                        <tr>
+                          <th>Medicine</th>
+                          <th>Dosage</th>
+                          <th>Frequency</th>
+                          <th>Duration</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="p in medicalRecord.prescriptions" :key="p.id">
+                          <td>{{ p.medicine_name }}</td>
+                          <td>{{ p.dosage || '-' }}</td>
+                          <td>{{ p.frequency || '-' }}</td>
+                          <td>{{ p.duration || '-' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
     
   </div>
 </template>
@@ -995,14 +1073,13 @@ export default {
         this.modals.record.show();
 
         try {
-            // Use the new dedicated route
             const response = await api.get(`/admin/appointments/${appointment.id}/record`);
             if (response.data.status === 'success') {
-            this.medicalRecord = response.data.data.record;
+                this.medicalRecord = response.data.data.record;
             }
         } catch (error) {
             if (error.response?.status !== 404) {
-            console.error('Failed to fetch medical record:', error);
+                console.error('Failed to fetch medical record:', error);
             }
             this.medicalRecord = null;
         } finally {
@@ -1047,6 +1124,7 @@ export default {
     this.modals = {
       view: new Modal(this.$refs.viewModal),
       cancel: new Modal(this.$refs.cancelModal),
+      record: new Modal(this.$refs.recordModal)
     };
   }
 };

@@ -1,0 +1,1247 @@
+openapi: 3.0.3
+info:
+  title: Chikitsa HMS API
+  description: Hospital Management System API for managing patients, doctors, appointments, and medical records
+  version: 1.0.0
+  contact:
+    name: Chikitsa Support
+    email: support@chikitsa.com
+
+servers:
+  - url: http://localhost:5000
+    description: Development server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Admin
+    description: Admin management endpoints
+  - name: Doctors
+    description: Doctor portal endpoints
+  - name: Patients
+    description: Patient portal endpoints
+  - name: Appointments
+    description: Appointment booking endpoints
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+
+    LoginRequest:
+      type: object
+      required: [username, password, role]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        password:
+          type: string
+          minLength: 8
+        role:
+          type: string
+          enum: [admin, doctor, patient]
+
+    LoginResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            refresh_token:
+              type: string
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                username:
+                  type: string
+                role:
+                  type: string
+
+    RegisterPatientRequest:
+      type: object
+      required: [username, email, password, first_name, last_name, dob, gender, phone]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        first_name:
+          type: string
+        last_name:
+          type: string
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [male, female, other]
+        blood_group:
+          type: string
+        phone:
+          type: string
+          pattern: '^\d{10}$'
+        address:
+          type: string
+        emergency_contact_name:
+          type: string
+        emergency_contact_phone:
+          type: string
+        medical_history:
+          type: string
+
+    Department:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        is_active:
+          type: boolean
+        total_doctors:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    DepartmentCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        department_id:
+          type: integer
+        department_name:
+          type: string
+        specialization:
+          type: string
+        qualification:
+          type: string
+        experience_years:
+          type: integer
+        consultation_fee:
+          type: number
+        is_available:
+          type: boolean
+
+    DoctorCreate:
+      type: object
+      required: [username, password, first_name, last_name, phone, specialization, qualification]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        department_id:
+          type: integer
+        specialization:
+          type: string
+        qualification:
+          type: string
+        experience_years:
+          type: integer
+        consultation_fee:
+          type: number
+
+    Patient:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        dob:
+          type: string
+          format: date
+        gender:
+          type: string
+        blood_group:
+          type: string
+        address:
+          type: string
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: integer
+        patient_id:
+          type: integer
+        patient_name:
+          type: string
+        doctor_id:
+          type: integer
+        doctor_name:
+          type: string
+        department:
+          type: string
+        appointment_date:
+          type: string
+          format: date
+        appointment_time:
+          type: string
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled, no_show]
+        booking_notes:
+          type: string
+        consultation_fee:
+          type: number
+
+    AppointmentCreate:
+      type: object
+      required: [doctor_id, appointment_date, appointment_time]
+      properties:
+        doctor_id:
+          type: integer
+        appointment_date:
+          type: string
+          format: date
+        appointment_time:
+          type: string
+          pattern: '^\d{2}:\d{2}$'
+        booking_notes:
+          type: string
+
+    MedicalRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        appointment_id:
+          type: integer
+        patient_id:
+          type: integer
+        doctor_id:
+          type: integer
+        diagnosis:
+          type: string
+        symptoms:
+          type: string
+        treatment:
+          type: string
+        notes:
+          type: string
+        follow_up_date:
+          type: string
+          format: date
+        prescriptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrescriptionItem'
+
+    PrescriptionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        medicine_name:
+          type: string
+        dosage:
+          type: string
+        frequency:
+          type: string
+        duration:
+          type: string
+        instructions:
+          type: string
+
+    WorkingHours:
+      type: object
+      properties:
+        day_of_week:
+          type: integer
+          minimum: 0
+          maximum: 6
+        day_name:
+          type: string
+        start_time:
+          type: string
+        end_time:
+          type: string
+        is_active:
+          type: boolean
+
+    Slot:
+      type: object
+      properties:
+        time:
+          type: string
+        available:
+          type: boolean
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== AUTH ====================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: User login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/register/patient:
+    post:
+      tags: [Auth]
+      summary: Register new patient
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPatientRequest'
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Validation error
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout user
+      responses:
+        '200':
+          description: Logout successful
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user info
+      responses:
+        '200':
+          description: User info retrieved
+
+  /auth/profile:
+    get:
+      tags: [Auth]
+      summary: Get user profile
+      responses:
+        '200':
+          description: Profile retrieved
+    put:
+      tags: [Auth]
+      summary: Update user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Profile updated
+
+  # ==================== ADMIN - DASHBOARD ====================
+  /admin/dashboard/stats:
+    get:
+      tags: [Admin]
+      summary: Get dashboard statistics
+      responses:
+        '200':
+          description: Stats retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      stats:
+                        type: object
+
+  # ==================== ADMIN - DEPARTMENTS ====================
+  /admin/departments:
+    get:
+      tags: [Admin]
+      summary: Get all departments
+      parameters:
+        - name: include_inactive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Departments list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      departments:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Department'
+    post:
+      tags: [Admin]
+      summary: Create department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepartmentCreate'
+      responses:
+        '201':
+          description: Department created
+
+  /admin/departments/{dept_id}:
+    get:
+      tags: [Admin]
+      summary: Get department by ID
+      parameters:
+        - name: dept_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Department details
+        '404':
+          description: Department not found
+    patch:
+      tags: [Admin]
+      summary: Update department
+      parameters:
+        - name: dept_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Department updated
+    delete:
+      tags: [Admin]
+      summary: Delete department
+      parameters:
+        - name: dept_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Department deleted
+
+  # ==================== ADMIN - DOCTORS ====================
+  /admin/doctors:
+    get:
+      tags: [Admin]
+      summary: Get all doctors
+      parameters:
+        - name: department_id
+          in: query
+          schema:
+            type: integer
+        - name: only_available
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Doctors list
+    post:
+      tags: [Admin]
+      summary: Create doctor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorCreate'
+      responses:
+        '201':
+          description: Doctor created
+
+  /admin/doctors/{doctor_id}:
+    get:
+      tags: [Admin]
+      summary: Get doctor by ID
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Doctor details
+    patch:
+      tags: [Admin]
+      summary: Update doctor
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Doctor updated
+
+  /admin/doctors/{doctor_id}/working-hours:
+    get:
+      tags: [Admin]
+      summary: Get doctor working hours
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Working hours retrieved
+    post:
+      tags: [Admin]
+      summary: Create working hours
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                schedule:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                      start_time:
+                        type: string
+                      end_time:
+                        type: string
+      responses:
+        '201':
+          description: Working hours created
+    put:
+      tags: [Admin]
+      summary: Bulk update working hours
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Working hours updated
+    delete:
+      tags: [Admin]
+      summary: Delete working hours
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Working hours deleted
+
+  # ==================== ADMIN - PATIENTS ====================
+  /admin/patients:
+    get:
+      tags: [Admin]
+      summary: Get all patients
+      responses:
+        '200':
+          description: Patients list
+    post:
+      tags: [Admin]
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPatientRequest'
+      responses:
+        '201':
+          description: Patient created
+
+  /admin/patients/{patient_id}:
+    get:
+      tags: [Admin]
+      summary: Get patient by ID
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Patient details
+    patch:
+      tags: [Admin]
+      summary: Update patient
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Patient updated
+
+  # ==================== ADMIN - APPOINTMENTS ====================
+  /admin/appointments:
+    get:
+      tags: [Admin]
+      summary: Get all appointments
+      parameters:
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Appointments list
+
+  /admin/appointments/{appointment_id}:
+    get:
+      tags: [Admin]
+      summary: Get appointment by ID
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Appointment details
+
+  /admin/appointments/{appointment_id}/status:
+    patch:
+      tags: [Admin]
+      summary: Update appointment status
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [scheduled, completed, cancelled, no_show]
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+
+  # ==================== ADMIN - MEDICAL RECORDS ====================
+  /admin/records:
+    get:
+      tags: [Admin]
+      summary: Get all medical records
+      parameters:
+        - name: patient_id
+          in: query
+          schema:
+            type: integer
+        - name: doctor_id
+          in: query
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Records list
+
+  /admin/records/{record_id}:
+    get:
+      tags: [Admin]
+      summary: Get medical record by ID
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Record details
+
+  # ==================== ADMIN - USER MANAGEMENT ====================
+  /admin/users/{user_id}/status:
+    patch:
+      tags: [Admin]
+      summary: Toggle user active status
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status toggled
+
+  /admin/users/{user_id}:
+    delete:
+      tags: [Admin]
+      summary: Delete user
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted
+
+  # ==================== DOCTOR PORTAL ====================
+  /doctor/profile:
+    get:
+      tags: [Doctors]
+      summary: Get doctor's own profile
+      responses:
+        '200':
+          description: Profile retrieved
+    put:
+      tags: [Doctors]
+      summary: Update doctor's profile
+      responses:
+        '200':
+          description: Profile updated
+
+  /doctor/dashboard/stats:
+    get:
+      tags: [Doctors]
+      summary: Get doctor dashboard stats
+      responses:
+        '200':
+          description: Stats retrieved
+
+  /doctor/patients:
+    get:
+      tags: [Doctors]
+      summary: Get doctor's patients
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Patients list
+
+  /doctor/appointments:
+    get:
+      tags: [Doctors]
+      summary: Get doctor's appointments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Appointments list
+
+  /doctor/appointments/{appointment_id}:
+    get:
+      tags: [Doctors]
+      summary: Get appointment details
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Appointment details
+
+  /doctor/appointments/{appointment_id}/status:
+    patch:
+      tags: [Doctors]
+      summary: Update appointment status
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Status updated
+
+  /doctor/appointments/{appointment_id}/complete:
+    post:
+      tags: [Doctors]
+      summary: Complete appointment with medical record
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [diagnosis, symptoms, treatment]
+              properties:
+                diagnosis:
+                  type: string
+                symptoms:
+                  type: string
+                treatment:
+                  type: string
+                notes:
+                  type: string
+                follow_up_date:
+                  type: string
+                  format: date
+                prescriptions:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '201':
+          description: Appointment completed
+
+  /doctor/appointments/{appointment_id}/record:
+    get:
+      tags: [Doctors]
+      summary: Get medical record for appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Record retrieved
+    post:
+      tags: [Doctors]
+      summary: Create medical record for appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Record created
+
+  /doctor/working-hours:
+    get:
+      tags: [Doctors]
+      summary: Get own working hours
+      responses:
+        '200':
+          description: Working hours retrieved
+
+  /doctor/unavailability:
+    get:
+      tags: [Doctors]
+      summary: Get unavailability periods
+      responses:
+        '200':
+          description: Unavailability list
+    post:
+      tags: [Doctors]
+      summary: Add unavailability period
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [start_datetime, end_datetime]
+              properties:
+                start_datetime:
+                  type: string
+                  format: date-time
+                end_datetime:
+                  type: string
+                  format: date-time
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Unavailability added
+
+  /doctor/calendar:
+    get:
+      tags: [Doctors]
+      summary: Get calendar view
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: integer
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Calendar data
+
+  # ==================== PATIENT PORTAL ====================
+  /patient/profile:
+    get:
+      tags: [Patients]
+      summary: Get patient's own profile
+      responses:
+        '200':
+          description: Profile retrieved
+    put:
+      tags: [Patients]
+      summary: Update patient's profile
+      responses:
+        '200':
+          description: Profile updated
+
+  /patient/appointments:
+    get:
+      tags: [Patients]
+      summary: Get patient's appointments
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: upcoming
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Appointments list
+    post:
+      tags: [Patients]
+      summary: Book new appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Appointment booked
+
+  /patient/appointments/{appointment_id}:
+    get:
+      tags: [Patients]
+      summary: Get appointment details
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Appointment details
+
+  /patient/appointments/{appointment_id}/reschedule:
+    put:
+      tags: [Patients]
+      summary: Reschedule appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointment_date, appointment_time]
+              properties:
+                appointment_date:
+                  type: string
+                  format: date
+                appointment_time:
+                  type: string
+      responses:
+        '200':
+          description: Appointment rescheduled
+
+  /patient/appointments/{appointment_id}/cancel:
+    post:
+      tags: [Patients]
+      summary: Cancel appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: Appointment cancelled
+
+  /patient/records:
+    get:
+      tags: [Patients]
+      summary: Get patient's medical records
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Records list
+
+  /patient/records/{record_id}:
+    get:
+      tags: [Patients]
+      summary: Get medical record details
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Record details
+
+  /patient/export-records:
+    post:
+      tags: [Patients]
+      summary: Export medical records to email
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Records exported
+
+  # ==================== APPOINTMENT SLOTS ====================
+  /appointments/slots/{doctor_id}:
+    get:
+      tags: [Appointments]
+      summary: Get available slots for a doctor
+      parameters:
+        - name: doctor_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      slots:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Slot'

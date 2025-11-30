@@ -160,7 +160,7 @@ export default {
         };
 
         if (this.isEdit) {
-          await api.put(`/admin/departments/${this.departmentId}`, payload);
+          await api.patch(`/admin/departments/${this.departmentId}`, payload);
         } else {
           await api.post('/admin/departments', payload);
         }

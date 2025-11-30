@@ -31,6 +31,8 @@ class MedicalRecordService:
         followup_date = data.get('followup_date')
         if followup_date and isinstance(followup_date, str):
             followup_date = datetime.strptime(followup_date, '%Y-%m-%d').date()
+        else:
+            followup_date = None
 
         record = MedicalRecord(
             appointment_id=appointment_id,
