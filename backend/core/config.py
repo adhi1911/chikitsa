@@ -14,6 +14,7 @@ class Config:
     FLASK_ENV = os.getenv('FLASK_ENV')
     ADMIN_USERNAME = os.getenv('ADMIN_USERNAME')
     ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')
+    HOSPITAL_PHONE = os.getenv('HOSPITAL_PHONE')
 
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
@@ -31,3 +32,6 @@ class Config:
     MAIL_USE_SSL = False
     MAIL_DEBUG = False
     MAIL_SUPPRESS_SEND = False
+
+    # REDIS 
+    REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

@@ -5,7 +5,7 @@ from ..core.logger import logger
 from ..core.mail import send_email 
 from ..services.appointments.service import AppointmentService
 from ..services.doctors.service import DoctorService
-from ..core.models import Patient
+from ..core.models import Doctor, Patient
 
 from .email_templates import generate_appointment_reminder_html
 from .report_templates import generate_monthly_report_html
@@ -40,26 +40,46 @@ def send_daily_reminders(hospital_phone: str) -> Dict:
     failed_count = 0
     failed_list = []
     
+    logger.info(appointments[0])
+
     for apt in appointments: 
-        patient = Patient.query.get(apt.patient_id)
+        patient_id = apt.get('patient_id')
+        apt_id = apt.get('id')
+        doctor_id = apt.get('doctor_id')
+        patient = Patient.query.get(patient_id)
         if not patient or not patient.user.email: 
             logger.warning(f"Skipping appointment {apt.id} - no patient email found.")
             continue
+        
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            logger.warning(f"Skipping appointment {apt_id} - no doctor found.")
+            continue
 
         try: 
+
+            apt_time = apt.get('appointment_time')
+            if hasattr(apt_time, 'strftime'):
+                apt_time = apt_time.strftime('%I:%M %p')
+            else:
+                time_display =  str(apt_time)
+
+            doctor_name = f"{doctor.first_name} {doctor.last_name or ''}".strip()
+            department = doctor.department.name if doctor.department else "General"
+
             html_body = generate_appointment_reminder_html(
-                patient_name = patient.first_name + " " + (patient.last_name or ""),
-                appointment_date = apt.appointment_date,
-                appointment_time = apt.appointment_time.strftime('%I:%M %p'),
-                doctor_name = apt.doctor.first_name + " " + (apt.doctor.last_name or ""),
-                department = apt.doctor.department.name if apt.doctor.department else "General",
+                patient_name = f"{patient.first_name} {patient.last_name or ''}".strip(),
+                appointment_date = apt.get('appointment_date'),
+                appointment_time = time_display,
+                doctor_name = doctor_name,
+                department = department,
                 hospital_phone = hospital_phone
             )
 
             sucess = send_email(
                 to = patient.user.email,
-                subject=f"Appointment Reminder- Today at {apt.appointment_time.strftime('%I:%M %p')}",
-                html_content=html_body
+                subject=f"Appointment Reminder- Today at {time_display}",
+                html_body=html_body
             )
 
             if sucess: 
@@ -70,7 +90,7 @@ def send_daily_reminders(hospital_phone: str) -> Dict:
 
 
         except Exception as e:
-            logger.error(f"Failed to send reminder for appointment {apt.id} to {patient.user.email}: {str(e)}")
+            logger.error(f"Failed to send reminder for appointment {apt_id} to {patient.user.email}: {str(e)}")
             failed_count += 1
             failed_list.append({'patient_id': apt.get('patient_id'), 'email': patient.user.email})
     

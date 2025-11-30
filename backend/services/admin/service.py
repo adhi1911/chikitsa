@@ -196,16 +196,25 @@ class AdminService:
     @staticmethod
     @admin_required
     def update_doctor(doctor_id: int, data: DoctorUpdate) -> Doctor:
-        """Update doctor profile"""
+        """Update doctor profile, including email in the user table"""
         try:
             logger.info(f"Updating doctor id {doctor_id}")
             doctor = Doctor.query.get(doctor_id)
             if not doctor:
                 raise ValueError("Doctor not found")
 
-            # Update fields from data
+            # Update fields in the doctor table
             for field, value in data.dict(exclude_unset=True).items():
-                setattr(doctor, field, value)
+                if field != "email":  # Skip email for now
+                    setattr(doctor, field, value)
+
+            # Update email in the associated user account if provided
+            if "email" in data.dict(exclude_unset=True):
+                user = User.query.get(doctor.user_id)
+                if not user:
+                    raise ValueError("Associated user not found")
+                user.email = data.email
+                user.updated_at = datetime.utcnow()
 
             doctor.updated_at = datetime.utcnow()
             db.session.commit()

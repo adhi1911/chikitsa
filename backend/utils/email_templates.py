@@ -11,7 +11,16 @@ def generate_appointment_reminder_html(
 ) -> str:
     """Generate HTML email for appointment reminder"""
     
-    formatted_date = appointment_date.strftime('%A, %B %d, %Y')
+    if isinstance(appointment_date, str):
+        try:
+            date_obj = datetime.strptime(appointment_date, '%Y-%m-%d')
+            formatted_date = date_obj.strftime('%A, %B %d, %Y')
+        except ValueError:
+            formatted_date = appointment_date
+    elif isinstance(appointment_date, (date, datetime)):
+        formatted_date = appointment_date.strftime('%A, %B %d, %Y')
+    else:
+        formatted_date = str(appointment_date)
     
     return f"""
 <!DOCTYPE html>
