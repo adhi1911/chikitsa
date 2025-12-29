@@ -124,7 +124,7 @@ Password: admin123
 
 ##  Documentation
 
-- **Detailed Documentation**: [documentation.pdf]('Project Documentation.pdf')
+- **Detailed Documentation**: [documentation.pdf](documentation.pdf)
 - **Backend Setup**: [backend/README.md](backend/README.md)
 - **Frontend Setup**: [frontend/README.md](frontend/README.md)
 - **API Reference**: [backend/api_specification.yaml](backend/api_specification.yaml)
@@ -194,4 +194,4 @@ Indian Institute of Technology Madras (BS Program)
 
 ## Connect
 
-For technical details and implementation specifics, refer to the comprehensive [project documentation]('Project Documentation.pdf').
+For technical details and implementation specifics, refer to the comprehensive [project documentation](documentation.pdf).
